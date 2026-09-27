@@ -3,7 +3,9 @@
 NBA 77개 시즌 선수 데이터를 수집·가공하고, 직접 만든 선수 평가 지표가 실제로 유효한지
 팀 성적으로 검증한 개인 프로젝트입니다.
 
-### 🔗 https://nba-data-lab.vercel.app
+[![NDL Score 페이지 — 학습된 5개 축 가중치와 2025-26 시즌 선수 순위표](docs/demo1.png)](https://nba-data-lab.vercel.app/ndl)
+
+**▶ 이미지를 클릭하면 실제 사이트로 이동합니다 — https://nba-data-lab.vercel.app**
 
 [시즌별 스탯](https://nba-data-lab.vercel.app/stats) ·
 [NDL Score](https://nba-data-lab.vercel.app/ndl) ·
@@ -192,6 +194,17 @@ NDL Score 상위 15명에는 40경기 미만이 한 명도 없습니다.
 > **적게 뛴 선수는 잘라내지 않고 끌어당깁니다.** 총 출전시간이 2,000분에 못 미치는 만큼
 > 점수를 평균(50점) 쪽으로 당깁니다. 표본이 작은 선수를 명단에서 지우지 않으면서도
 > 상위권을 차지하지 못하게 하는 방식입니다.
+
+## 화면
+
+| | |
+|---|---|
+| [![홈 — 규모 수치와 척도 상한에 닿은 다섯 시즌](docs/demo4.png)](https://nba-data-lab.vercel.app) | [![선수 포지셔닝 — PER과 NDL Score를 두 축으로 놓은 산점도](docs/demo3.png)](https://nba-data-lab.vercel.app/scatter) |
+| **홈** — 수집 규모와, 25,292개 선수-시즌 중 100점 상한에 닿은 다섯 시즌 | **선수 포지셔닝** — 두 스탯을 축으로 비교. 점을 누르면 선수 정보가 열림 |
+
+[![선수 커리어 — LeBron James의 스탯별 커리어 추이와 시즌 기록표](docs/demo2.png)](https://nba-data-lab.vercel.app/player)
+
+**선수 커리어** — 선수를 검색해 스탯별 추이를 보고, 아래 표에서 시즌별 기록을 확인합니다.
 
 ## 한계
 

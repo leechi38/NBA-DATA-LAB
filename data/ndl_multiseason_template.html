@@ -1,141 +1,99 @@
-<title>NDL Score — NBA DATA LAB 선수 평가</title>
+﻿<title>NDL Score — NBA DATA LAB 선수 평가</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  .viz-root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --page-plane:     #f9f9f7;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid:           #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6;
-    --seq-100:        #cde2fb;
-    --seq-400:        #3987e5;
-    --div-pos:        #2a78d6;
-    --div-neg:        #e34948;
-    --div-mid:        #f0efec;
-    --row-hover:       #f0f4fb;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --page-plane:     #0d0d0d;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid:           #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --seq-100:        #184f95;
-      --seq-400:        #3987e5;
-      --div-pos:        #3987e5;
-      --div-neg:        #e66767;
-      --div-mid:        #383835;
-      --row-hover:      #16233a;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
-    color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --page-plane:     #0d0d0d;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --grid:           #2c2c2a;
-    --baseline:       #383835;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --seq-100:        #184f95;
-    --seq-400:        #3987e5;
-    --div-pos:        #3987e5;
-    --div-neg:        #e66767;
-    --div-mid:        #383835;
-    --row-hover:      #16233a;
-  }
+__BASE_CSS__
 
-  * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root {
-    background: var(--page-plane);
-    color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    min-height: 100vh;
-    padding: 32px 16px 64px;
+  /* ── 산식과 방법 설명 ──────────────────────────────────── */
+  .methodology { margin: 22px 0 26px; border-block: 1px solid var(--rule); padding: 16px 0; }
+  .formula {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.95rem; letter-spacing: 0.01em;
+    padding: 9px 0 11px; border-bottom: 1px solid var(--rule); margin-bottom: 12px;
   }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
-  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
-  .nav-link:hover { border-bottom-color: var(--series-1); }
+  .formula b { color: var(--accent); font-weight: 600; }
 
-  .methodology {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 18px 20px; margin: 22px 0; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.7;
+  /* 5개 축의 가중치를 눈에 보이게. 숫자를 문장 안에 묻지 않는다. */
+  .comp-legend { display: grid; gap: 1px; background: var(--rule); }
+  .comp-item {
+    background: var(--paper); display: grid;
+    grid-template-columns: 5.5rem 3.2rem 1fr; gap: 10px; align-items: baseline;
+    padding: 7px 0; font-size: 0.83rem;
   }
-  .methodology h2 { font-size: 0.95rem; color: var(--text-primary); margin: 0 0 10px; }
-  .methodology .formula { font-family: ui-monospace, monospace; font-size: 0.82rem; background: var(--page-plane); padding: 10px 12px; border-radius: 6px; margin: 8px 0; overflow-x: auto; }
-  .methodology .caveat { margin-top: 10px; font-size: 0.82rem; color: var(--text-muted); }
-  .comp-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+  .comp-item .cname { font-weight: 600; }
+  .comp-item .cw {
+    font-family: Oswald, system-ui, sans-serif; color: var(--accent);
+    font-variant-numeric: tabular-nums; text-align: right; font-weight: 500;
+  }
+  .comp-item .cdef { color: var(--ink-2); font-size: 0.8rem; }
+  .comp-item .cdef em { font-style: normal; color: var(--ink); font-weight: 500; }
 
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 12px; align-items: center; }
-  .controls input, .controls select {
-    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; font-family: inherit;
+  details.notes { margin-top: 14px; }
+  details.notes > summary {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.82rem;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+    cursor: pointer; padding: 7px 0; list-style: none;
   }
-  .controls input { flex: 1 1 220px; min-width: 160px; }
-  .controls select#season-select { font-weight: 600; }
-  .controls .count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+  details.notes > summary::-webkit-details-marker { display: none; }
+  details.notes > summary::before { content: "▸ "; color: var(--accent); }
+  details.notes[open] > summary::before { content: "▾ "; }
+  details.notes > summary:hover { color: var(--accent); }
+  .caveat { margin: 4px 0 0; font-size: 0.83rem; color: var(--ink-2); line-height: 1.75; }
+  .caveat strong { color: var(--ink); font-weight: 600; }
 
-  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
-  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
-  thead th {
-    position: sticky; top: 0; background: var(--surface-1); z-index: 1;
-    text-align: right; padding: 10px 12px; font-weight: 600; color: var(--text-secondary);
-    border-bottom: 1px solid var(--grid); white-space: nowrap;
-  }
-  thead th:nth-child(1), thead th:nth-child(2), thead th:nth-child(3), thead th:nth-child(4) { text-align: left; }
-  tbody td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; vertical-align: middle; }
-  tbody td:nth-child(1), tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align: left; font-variant-numeric: normal; }
+  /* ── 표 ───────────────────────────────────────────────── */
+  thead th:nth-child(-n+4) { text-align: left; }
+  tbody td { vertical-align: middle; }
+  tbody td:nth-child(-n+4) { text-align: left; font-variant-numeric: normal; }
   tbody tr.player-row { cursor: pointer; }
-  tbody tr.player-row:hover { background: var(--row-hover); }
-  tbody tr:last-child td { border-bottom: none; }
-  .rank { color: var(--text-muted); width: 28px; }
+  .rank { color: var(--ink-3); width: 28px; }
   .player-name { font-weight: 600; }
   .player-name a { color: inherit; text-decoration: none; }
-  .player-name a:hover { color: var(--series-1); text-decoration: underline; }
-  .score-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-  .score-num { font-weight: 700; min-width: 34px; text-align: right; }
-  .meter-track { width: 90px; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
-  .meter-fill { height: 100%; background: var(--seq-400); border-radius: 3px; }
+  .player-name a:hover { color: var(--accent); text-decoration: underline; }
+  .team-badge {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.06em;
+  }
+  .score-cell { display: flex; align-items: center; gap: 9px; justify-content: flex-end; }
+  .score-num {
+    font-family: Oswald, system-ui, sans-serif; font-size: 1.02rem; font-weight: 600;
+    min-width: 34px; text-align: right;
+  }
+  .meter-track { width: 84px; height: 6px; border-radius: 1px; background: var(--surface-sunk); overflow: hidden; }
+  .meter-fill { height: 100%; background: var(--accent); }
 
-  .detail-row td { padding: 0; border-bottom: 1px solid var(--grid); }
+  /* ── 펼친 선수의 축별 분해 ────────────────────────────── */
+  .detail-row td { padding: 0; }
   .detail-row.hidden { display: none; }
-  .detail-inner { padding: 14px 20px 18px; background: var(--page-plane); }
-  .div-bar-row { display: grid; grid-template-columns: 110px 1fr 52px; align-items: center; gap: 10px; margin: 6px 0; font-size: 0.82rem; }
-  .div-bar-row .comp-label { color: var(--text-secondary); text-align: right; }
-  .div-track { position: relative; height: 14px; background: var(--div-mid); border-radius: 3px; }
-  .div-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--baseline); }
-  .div-fill { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
-  .div-fill.pos { background: var(--div-pos); left: 50%; }
-  .div-fill.neg { background: var(--div-neg); right: 50%; }
-  .div-val { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-  .weight-note { margin: 10px 0 0; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
-  .low-sample-badge { font-size: 0.68rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: 4px; white-space: nowrap; }
+  .detail-inner { padding: 14px 0 18px 12px; background: var(--surface-sunk); }
+  .div-bar-row {
+    display: grid; grid-template-columns: 6.5rem 1fr 3.2rem;
+    align-items: center; gap: 10px; margin: 5px 0; font-size: 0.82rem;
+  }
+  .div-bar-row .comp-label { color: var(--ink-2); text-align: right; }
+  .div-track { position: relative; height: 13px; background: var(--paper); border-radius: 1px; }
+  .div-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--ink-3); }
+  .div-fill { position: absolute; top: 0; bottom: 0; }
+  .div-fill.pos { background: var(--accent); left: 50%; }
+  .div-fill.neg { background: var(--ink-3); right: 50%; }
+  .div-val { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .weight-note { margin: 10px 12px 0 0; font-size: 0.78rem; color: var(--ink-3); line-height: 1.55; }
+  .low-sample-badge {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.64rem; letter-spacing: 0.05em;
+    color: var(--ink-3); border: 1px solid var(--rule); border-radius: 2px;
+    padding: 1px 5px; margin-left: 5px; white-space: nowrap;
+  }
 
-  footer.page-foot { margin-top: 28px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
-  .empty-state { padding: 32px; text-align: center; color: var(--text-muted); }
+  @media (max-width: 560px) {
+    .comp-item { grid-template-columns: 5.5rem 3.2rem; }
+    .comp-item .cdef { grid-column: 1 / -1; }
+  }
 </style>
 
 <div class="viz-root">
   <div class="wrap">
     <header class="page-head">
-      <h1>NDL Score — NBA DATA LAB 선수 평가</h1>
-      <p><span id="season-title">선택 시즌</span> 정규시즌 기록을 바탕으로 만든 자체 종합 평가 지표입니다. 5개 하위 지표를 표준화(z-score)해 가중합한 뒤 0~100 점수로 환산했습니다. 평균적인 선수가 50점입니다. 상단에서 시즌을 선택할 수 있습니다.</p>
+      <div class="eyebrow"><span id="season-title">선택 시즌</span> 정규시즌</div>
+      <h1>NDL Score</h1>
+      <p>정규시즌 기록으로 만든 자체 종합 평가 지표입니다. 5개 축을 표준화(z-score)해 가중합한 뒤 0~100으로 환산했고, 평균적인 선수가 50점입니다. 표에서 선수를 클릭하면 어느 축에서 점수가 왔는지 펼쳐 볼 수 있습니다.</p>
       <div class="nav-links">
         <a class="nav-link" href="__HOME_URL__">← 홈</a>
         <a class="nav-link" href="__STATS_URL__">스탯 정리</a>
@@ -146,16 +104,23 @@
     </header>
 
     <section class="methodology">
-      <h2>NDL Score 계산 방법</h2>
-      <div class="formula">NDL Score = 50 + 10 × ( z(가중합) × 출전시간 가중치 )</div>
+      <div class="formula">NDL Score = <b>50</b> + <b>10</b> × ( z(가중합) × 출전시간 가중치 )</div>
       <div class="comp-legend">
-        <span>생산성 9.0% = z(PTS+TRB+AST+STL+BLK−TOV), 리그 전체 기준</span>
-        <span>효율성 29.7% = z(TS%)+z(eFG%), <strong>포지션(가드/포워드/센터) 내</strong> 기준</span>
-        <span>플레이메이킹 9.3% = z(AST%)−z(TOV%), 포지션 내 기준</span>
-        <span>수비기여 12.0% = z(STL%)+z(BLK%)+z(DRB%), 포지션 내 기준</span>
-        <span>승리기여 40.0% = z(WS)+z(VORP), 리그 전체 기준</span>
+        <div class="comp-item"><span class="cname">생산성</span><span class="cw">9.0%</span>
+          <span class="cdef">z(PTS+TRB+AST+STL+BLK−TOV) · 리그 전체 기준</span></div>
+        <div class="comp-item"><span class="cname">효율성</span><span class="cw">29.7%</span>
+          <span class="cdef">z(TS%)+z(eFG%) · <em>포지션군 내</em> 기준</span></div>
+        <div class="comp-item"><span class="cname">플레이메이킹</span><span class="cw">9.3%</span>
+          <span class="cdef">z(AST%)−z(TOV%) · <em>포지션군 내</em> 기준</span></div>
+        <div class="comp-item"><span class="cname">수비기여</span><span class="cw">12.0%</span>
+          <span class="cdef">z(STL%)+z(BLK%)+z(DRB%) · <em>포지션군 내</em> 기준</span></div>
+        <div class="comp-item"><span class="cname">승리기여</span><span class="cw">40.0%</span>
+          <span class="cdef">z(WS)+z(VORP) · 리그 전체 기준</span></div>
       </div>
-      <p class="caveat">
+
+      <details class="notes">
+        <summary>가중치를 어떻게 정했고, 무엇을 검증했는지</summary>
+        <p class="caveat">
         <strong>가중치는 실제 팀 성적으로 학습했습니다</strong>: 처음에는 가중치를 임의로 정했지만(25/20/15/20/20), 지금은 팀별 실제 경기당 득실 마진을 정답값으로 두고 학습한 값을 씁니다. 같은 팀 선수들의 구성요소 평균이 그 팀의 실제 마진을 얼마나 설명하는지로 가중치를 맞췄고, <strong>1952~2015년의 홀수 연도 시즌으로만 학습</strong>했습니다(시즌 단위 분리로 정보 누수 차단).<br/>
         <strong>과적합이 아님을 세 구간에서 확인했습니다</strong>: 학습 구간 0.853→0.900, 짝수 연도 검증 구간 0.864→0.910, 그리고 학습에 전혀 쓰이지 않은 <strong>2016~2024 현대 홀드아웃 구간에서 0.895→0.939(9개 시즌 전부 개선)</strong>. 세 구간의 개선폭이 +0.044~+0.047로 거의 같습니다. 과거 데이터에만 맞춘 것이라면 3점 혁명 이후 시즌에서 개선폭이 줄어야 하는데 그렇지 않았습니다.<br/>
         <strong>순환논리를 피하기 위한 제약</strong>: 제약 없이 최적화하면 승리기여(WS·VORP)가 83%를 가져갑니다. 두 지표 자체가 팀 성적에서 역산되는 값이라 당연한 결과이고, 그러면 NDL Score는 WS의 재포장에 불과해집니다. 그래서 각 요소를 5~40%로 제한해 5개 축이 모두 살아있도록 했습니다.<br/>
@@ -164,7 +129,8 @@
         <strong>옛날 시즌 유의</strong>: 스틸/블록은 1973-74, 3점슛은 1979-80, 슛 구역 데이터는 1996-97 시즌부터 집계되어 이전 시즌은 일부 하위 지표가 0(중립)으로 처리됩니다. 특정 선수만 기록이 누락된 경우에도 해당 항목만 중립 처리하고 나머지로 점수를 계산합니다.<br/>
         <strong>한계</strong>: 같은 검증 기준(73개 시즌 평균)에서 공인 지표인 WS는 0.941, BPM은 0.987로 NDL Score(0.890)보다 높습니다. 다만 두 지표는 애초에 팀 성적에 맞춰 설계된 값이라 이 검증에서 유리하며, NDL Score는 5개 축으로 분해해 볼 수 있는 프로필을 제공하는 데 목적이 있습니다.<br/>
         <strong>검증 데이터 출처</strong>: 팀별 실제 득실 마진은 538 ELO 게임 로그(1947~2015)와 NBA 팀 박스스코어(2016~2024)를 합쳐 만들었습니다. 두 소스가 겹치는 146개 팀-시즌에서 마진이 소수점 이하까지 완전히 일치하는 것을 확인했습니다.
-      </p>
+        </p>
+      </details>
     </section>
 
     <section class="controls">

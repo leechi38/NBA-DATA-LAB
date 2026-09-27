@@ -1,144 +1,336 @@
-<title>선수 포지셔닝 — NBA DATA LAB</title>
+﻿<title>선수 포지셔닝 — NBA DATA LAB</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  .viz-root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --page-plane:     #f9f9f7;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid:           #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6; /* G */
-    --series-2:       #eb6834; /* F */
-    --series-3:       #1baf7a; /* C */
-    --row-hover:      #f0f4fb;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --page-plane:     #0d0d0d;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid:           #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --series-2:       #d95926;
-      --series-3:       #199e70;
-      --row-hover:      #16233a;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
+/* NBA DATA LAB 공통 스타일
+ *
+ * 컨셉: 기록집(record book). 농구의 고유 문서 형식은 박스스코어이므로 카드와 그림자 대신
+ * 괘선과 표를 기본 구조로 쓴다. 액센트는 농구공 가죽색 하나만 두고, 숫자가 중요한 화면이라
+ * 응축형 서체(Oswald)로 수치를 세운다. 한글 본문은 IBM Plex Sans KR이 담당한다.
+ *
+ * 빌드 시점에 site_config.apply_base_css()가 각 템플릿의 자리표시자에 이 파일을 통째로
+ * 끼워 넣는다. 페이지 고유 레이아웃은 각 템플릿이 이 뒤에 이어서 정의한다.
+ */
+
+.viz-root {
+  color-scheme: light;
+  --paper:        #f4f3f0;
+  --surface:      #ffffff;
+  --surface-sunk: #edece8;
+  --ink:          #16181d;
+  --ink-2:        #4a4e57;
+  --ink-3:        #878b93;
+  --rule:         #dedcd6;
+  --rule-strong:  #16181d;
+  --accent:       #cf4a20;
+  --accent-soft:  #fbeee9;
+  --pos:          #1c7f5a;
+  --neg:          #b03a2e;
+
+  /* 차트용 계열색. 액센트와 충돌하지 않는 범위에서 4개만 둔다. */
+  --cat-1: #cf4a20;  /* 액센트(가죽) */
+  --cat-2: #2a6f7a;  /* 딥 틸 */
+  --cat-3: #7b6193;  /* 슬레이트 바이올렛 */
+  --cat-4: #b08420;  /* 오커 */
+  --seq-lo: #f6ddd2;
+  --seq-hi: #cf4a20;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .viz-root {
     color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --page-plane:     #0d0d0d;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --grid:           #2c2c2a;
-    --baseline:       #383835;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --series-2:       #d95926;
-    --series-3:       #199e70;
-    --row-hover:      #16233a;
+    --paper:        #101216;
+    --surface:      #171a1f;
+    --surface-sunk: #1d2127;
+    --ink:          #f2f3f5;
+    --ink-2:        #a8adb6;
+    --ink-3:        #6f747d;
+    --rule:         #2a2e35;
+    --rule-strong:  #6f747d;
+    --accent:       #f2683b;
+    --accent-soft:  #2b1710;
+    --pos:          #3fbc8b;
+    --neg:          #e2705f;
+    --cat-1: #f2683b;
+    --cat-2: #4fa8b5;
+    --cat-3: #a68cc0;
+    --cat-4: #d9ab45;
+    --seq-lo: #3a2018;
+    --seq-hi: #f2683b;
   }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --paper:        #101216;
+  --surface:      #171a1f;
+  --surface-sunk: #1d2127;
+  --ink:          #f2f3f5;
+  --ink-2:        #a8adb6;
+  --ink-3:        #6f747d;
+  --rule:         #2a2e35;
+  --rule-strong:  #6f747d;
+  --accent:       #f2683b;
+  --accent-soft:  #2b1710;
+  --pos:          #3fbc8b;
+  --neg:          #e2705f;
+  --cat-1: #f2683b;
+  --cat-2: #4fa8b5;
+  --cat-3: #a68cc0;
+  --cat-4: #d9ab45;
+  --seq-lo: #3a2018;
+  --seq-hi: #f2683b;
+}
 
-  * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root {
-    background: var(--page-plane); color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    min-height: 100vh; padding: 32px 16px 64px;
-  }
-  .wrap { max-width: 1120px; margin: 0 auto; }
-  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
-  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
-  .nav-link:hover { border-bottom-color: var(--series-1); }
+/* ── 구 토큰 이름 별칭 ──────────────────────────────────────
+ * 페이지별 CSS와 캔버스 그리기 코드가 예전 이름을 쓰고 있다. var() 참조는
+ * 사용 시점에 풀리므로, 여기 한 번만 선언해도 다크 모드에서 알아서 따라간다.
+ */
+.viz-root {
+  --surface-1:      var(--surface);
+  --page-plane:     var(--paper);
+  --text-primary:   var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-muted:     var(--ink-3);
+  --grid:           var(--rule);
+  --baseline:       var(--rule);
+  --border:         var(--rule);
+  --row-hover:      var(--surface-sunk);
+  --chip-bg:        var(--surface-sunk);
+  --chip-bg-active: var(--accent-soft);
+  --dot:            var(--accent);
+  --good:           var(--pos);
+  --div-pos:        var(--pos);
+  --div-neg:        var(--neg);
+  --div-mid:        var(--ink-3);
+  --series-1:       var(--cat-1);
+  --series-2:       var(--cat-2);
+  --series-3:       var(--cat-3);
+  --series-4:       var(--cat-4);
+  --seq-100:        var(--seq-lo);
+  --seq-400:        var(--seq-hi);
+}
 
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 6px; align-items: center; }
-  .controls label { font-size: 0.8rem; color: var(--text-muted); margin-right: 4px; }
-  .controls select, .controls input {
-    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px 10px; font-size: 0.86rem; font-family: inherit;
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+.viz-root {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding-block: 28px 72px;
+  padding-inline: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+/* ── 응축형 서체: 제목·라벨·수치 ───────────────────────────── */
+.display,
+.viz-root h1,
+.stat-figure,
+.rank-num {
+  font-family: Oswald, "IBM Plex Sans KR", system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.viz-root h1 {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+  line-height: 1.15;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.viz-root h2 { font-size: 1.05rem; margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
+.viz-root h3 { font-size: 0.92rem; margin: 0 0 6px; font-weight: 600; }
+
+/* 섹션을 여는 작은 라벨. 카드 대신 이걸로 구역을 나눈다. */
+.eyebrow {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+
+/* ── 머리말 ────────────────────────────────────────────── */
+header.page-head { border-bottom: 2px solid var(--rule-strong); padding-bottom: 14px; margin-bottom: 22px; }
+header.page-head p { margin: 0; color: var(--ink-2); font-size: 0.92rem; max-width: 68ch; }
+
+.nav-links { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 14px; }
+.nav-link {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-2); text-decoration: none;
+  padding: 5px 11px; border-radius: 3px;
+}
+.nav-link:hover { color: var(--accent); background: var(--accent-soft); }
+
+/* ── 조작부 ────────────────────────────────────────────── */
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.controls input, .controls select,
+.setup input, .setup select {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 4px;
+  padding: 7px 11px; font-size: 0.88rem; font-family: inherit;
+}
+.controls input:focus-visible, .controls select:focus-visible,
+.setup input:focus-visible, .setup select:focus-visible,
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.controls input { flex: 1 1 200px; min-width: 150px; }
+.controls select#season-select,
+#season-select {
+  font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.03em; font-weight: 500;
+}
+.controls .count, .count { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); white-space: nowrap; }
+
+/* ── 표: 카드가 아니라 괘선으로 ─────────────────────────── */
+.table-scroll { overflow-x: auto; border-top: 2px solid var(--rule-strong); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--paper);
+  font-family: Oswald, system-ui, sans-serif;
+  font-weight: 500; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-3); text-align: right; white-space: nowrap;
+  padding: 9px 12px; border-bottom: 1px solid var(--rule);
+}
+tbody td {
+  padding: 8px 12px; text-align: right;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+tbody tr:hover td { background: var(--surface-sunk); }
+.rank-num { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+footer.page-foot {
+  margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--rule);
+  font-size: 0.78rem; color: var(--ink-3); line-height: 1.6;
+}
+
+.empty-state { padding: 40px 16px; text-align: center; color: var(--ink-3); font-size: 0.88rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+
+  /* ── 축 선택 ──────────────────────────────────────────── */
+  .controls { margin: 22px 0 6px; }
+  .controls label {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--ink-3); margin-right: 6px;
   }
-  .controls input { min-width: 160px; }
+  .controls input { min-width: 150px; flex: 0 1 190px; }
   .axis-group { display: flex; align-items: center; }
   .swap-btn {
-    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary);
-    border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 0.9rem;
+    background: transparent; border: 1px solid var(--rule); color: var(--ink-2);
+    border-radius: 3px; width: 32px; height: 32px; cursor: pointer; font-size: 0.9rem;
   }
-  .swap-btn:hover { color: var(--text-primary); }
-  .count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+  .swap-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-  .legend { display: flex; gap: 14px; margin: 10px 0 16px; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.84rem; color: var(--text-secondary); cursor: pointer; user-select: none; background: none; border: none; font-family: inherit; padding: 4px 8px; border-radius: 6px; }
-  .legend-item:hover { background: var(--row-hover); }
-  .legend-item.off { opacity: 0.4; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  /* ── 포지션 범례(클릭해 끄고 켤 수 있음) ──────────────── */
+  .legend { display: flex; gap: 4px; margin: 10px 0 14px; flex-wrap: wrap; }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.78rem; letter-spacing: 0.05em; color: var(--ink-2);
+    cursor: pointer; user-select: none; background: none;
+    border: 1px solid transparent; padding: 4px 9px; border-radius: 2px;
+  }
+  .legend-item:hover { border-color: var(--rule); }
+  .legend-item.off { opacity: 0.35; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
-  .board { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  /* ── 산점도 ───────────────────────────────────────────── */
+  .board { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
   .chart-card {
-    flex: 1 1 640px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
-    padding: 12px; position: relative;
+    flex: 1 1 620px; min-width: 0; position: relative;
+    border-top: 2px solid var(--rule-strong); border-bottom: 1px solid var(--rule);
+    padding: 10px 0;
   }
   svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
-  .axis-tick text { fill: var(--text-muted); font-size: 11px; }
-  .axis-label { fill: var(--text-secondary); font-size: 12.5px; }
-  .gridline { stroke: var(--grid); stroke-width: 1; }
-  .baseline { stroke: var(--baseline); stroke-width: 1; }
+  .axis-tick text { fill: var(--ink-3); font-size: 11px; font-family: Oswald, system-ui, sans-serif; }
+  .axis-label { fill: var(--ink-2); font-size: 12px; font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.06em; }
+  .gridline { stroke: var(--rule); stroke-width: 1; }
+  .baseline { stroke: var(--ink-3); stroke-width: 1; }
   circle.hit { fill: transparent; cursor: pointer; }
-  circle.dot { stroke: var(--surface-1); stroke-width: 2; fill-opacity: 0.82; pointer-events: none; transition: r 0.1s ease, fill-opacity 0.1s ease; }
-  circle.dot.pos-G { fill: var(--series-1); }
-  circle.dot.pos-F { fill: var(--series-2); }
-  circle.dot.pos-C { fill: var(--series-3); }
+  circle.dot {
+    stroke: var(--paper); stroke-width: 1.5; fill-opacity: 0.8; pointer-events: none;
+    transition: r 0.1s ease, fill-opacity 0.1s ease;
+  }
+  circle.dot.pos-G { fill: var(--cat-1); }
+  circle.dot.pos-F { fill: var(--cat-2); }
+  circle.dot.pos-C { fill: var(--cat-3); }
   g.point:hover circle.dot { r: 7; fill-opacity: 1; }
-  g.point.hovered circle.dot { r: 7; fill-opacity: 1; stroke: var(--text-primary); }
+  g.point.hovered circle.dot { r: 7; fill-opacity: 1; stroke: var(--ink); }
   g.point.matched circle.dot { r: 7; fill-opacity: 1; }
-  g.point.dimmed circle.dot { fill-opacity: 0.12; }
+  g.point.dimmed circle.dot { fill-opacity: 0.1; }
   g.point.hidden-group { display: none; }
 
   .tooltip {
     position: absolute; pointer-events: none; z-index: 5;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    background: var(--surface); border: 1px solid var(--ink-3); border-radius: 2px;
+    padding: 8px 10px; font-size: 0.8rem;
     opacity: 0; transform: translate(-50%, -110%); transition: opacity 0.08s ease;
   }
   .tooltip.show { opacity: 1; }
-  .tooltip .tt-name { font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
-  .tooltip .tt-sub { color: var(--text-muted); font-size: 0.74rem; margin-bottom: 4px; }
-  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
-  .tooltip .tt-row .v { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary); }
-  .tooltip .tt-row .k { color: var(--text-secondary); }
-
-  .detail-card {
-    flex: 0 0 260px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
-    padding: 20px; min-height: 200px; display: flex; flex-direction: column; align-items: center; text-align: center;
+  .tooltip .tt-name { font-weight: 600; color: var(--ink); margin-bottom: 1px; }
+  .tooltip .tt-sub {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.72rem; letter-spacing: 0.05em; margin-bottom: 5px;
   }
-  .detail-card.empty { justify-content: center; color: var(--text-muted); font-size: 0.85rem; }
-  .detail-card img { width: 108px; height: 108px; object-fit: cover; border-radius: 50%; border: 2px solid var(--border); background: var(--page-plane); }
-  .detail-card .d-name { font-weight: 700; font-size: 1.05rem; margin-top: 12px; }
-  .detail-card .d-sub { color: var(--text-muted); font-size: 0.82rem; margin-top: 2px; }
-  .detail-stats { width: 100%; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .detail-stats .stat { background: var(--page-plane); border-radius: 8px; padding: 8px 6px; }
-  .detail-stats .stat .k { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
-  .detail-stats .stat .v { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
-  .close-btn { align-self: flex-end; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 0; }
+  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; }
+  .tooltip .tt-row .v { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .tooltip .tt-row .k { color: var(--ink-2); }
 
-  footer.page-foot { margin-top: 24px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+  /* ── 선택한 선수 카드 ─────────────────────────────────── */
+  .detail-card {
+    flex: 0 0 250px; padding: 16px 0 20px;
+    border-top: 2px solid var(--rule-strong); border-bottom: 1px solid var(--rule);
+    min-height: 200px; display: flex; flex-direction: column; align-items: center; text-align: center;
+  }
+  .detail-card.empty { justify-content: center; color: var(--ink-3); font-size: 0.85rem; }
+  .detail-card img {
+    width: 104px; height: 104px; object-fit: cover; border-radius: 50%;
+    border: 1px solid var(--rule); background: var(--surface-sunk);
+  }
+  .detail-card .d-name { font-weight: 600; font-size: 1.05rem; margin-top: 12px; }
+  .detail-card .d-sub {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.07em; margin-top: 2px;
+  }
+  .detail-stats {
+    width: 100%; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1px; background: var(--rule); border-block: 1px solid var(--rule);
+  }
+  .detail-stats .stat { background: var(--paper); padding: 8px 6px; }
+  .detail-stats .stat .k {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.64rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .detail-stats .stat .v {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 1px;
+  }
+  .close-btn {
+    align-self: flex-end; background: none; border: none;
+    color: var(--ink-3); cursor: pointer; font-size: 1rem; padding: 0;
+  }
+  .close-btn:hover { color: var(--accent); }
+
+  @media (max-width: 720px) { .detail-card { flex: 1 1 100%; } }
 </style>
 
 <div class="viz-root">
   <div class="wrap">
     <header class="page-head">
-      <h1>선수 포지셔닝 — <span id="season-title">2025-26</span> 시즌</h1>
-      <p>두 스탯을 골라 선수들이 서로 어느 위치에 있는지 산점도로 비교합니다. 점을 클릭하면 선수 얼굴과 주요 기록을 볼 수 있습니다. 표본이 안정적인 15경기 이상 출전 선수만 표시하며, 1949-50 시즌부터 시즌을 골라 볼 수 있습니다.</p>
+      <div class="eyebrow"><span id="season-title">2025-26</span> 정규시즌</div>
+      <h1>선수 포지셔닝</h1>
+      <p>두 스탯을 축으로 놓고 선수들이 서로 어디에 있는지 비교합니다. 점을 클릭하면 선수 정보가 우측에 뜹니다. 표본이 안정적인 15경기 이상 출전 선수만 표시합니다.</p>
       <div class="nav-links">
         <a class="nav-link" href="/">← 홈</a>
         <a class="nav-link" href="/stats">스탯 정리 페이지</a>

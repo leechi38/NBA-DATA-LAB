@@ -30,3 +30,4 @@ __pycache__/
 .venv/
 venv/
 _*.py
+data/_exp_components.csv

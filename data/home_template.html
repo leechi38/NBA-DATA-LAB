@@ -1,0 +1,115 @@
+<title>NBA DATA LAB</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --page-plane:     #f9f9f7;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --series-2:       #eb6834;
+    --series-3:       #1baf7a;
+    --series-4:       #eda100;
+    --series-5:       #8560d9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --page-plane:     #0d0d0d;
+      --surface-1:      #1a1a19;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+      --series-3:       #199e70;
+      --series-4:       #c98500;
+      --series-5:       #9b7fe8;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --page-plane:     #0d0d0d;
+    --surface-1:      #1a1a19;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --series-3:       #199e70;
+    --series-4:       #c98500;
+    --series-5:       #9b7fe8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page-plane); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 720px; width: 100%; }
+  h1 { font-size: 1.9rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .tagline { color: var(--text-secondary); font-size: 0.98rem; line-height: 1.6; margin: 0 0 32px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 22px 24px; transition: border-color 0.15s ease;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card.stats { --accent: var(--series-1); }
+  .card.player { --accent: var(--series-5); }
+  .card.ndl { --accent: var(--series-2); }
+  .card.scatter { --accent: var(--series-3); }
+  .card.sim { --accent: var(--series-4); }
+  .card:hover { border-color: var(--accent, var(--series-1)); }
+  .card .eyebrow { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); font-weight: 600; }
+  .card h2 { font-size: 1.15rem; margin: 6px 0 8px; }
+  .card p { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.55; margin: 0; }
+  .card .go { margin-top: 14px; font-size: 0.82rem; color: var(--accent); }
+  footer { margin-top: 28px; font-size: 0.78rem; color: var(--text-muted); text-align: center; }
+</style>
+<div class="viz-root">
+  <div class="wrap">
+    <h1>🏀 NBA DATA LAB</h1>
+    <p class="tagline">1949-50시즌부터 2025-26시즌까지 NBA 역대 전 시즌 데이터를 정리하고, 자체 개발한 종합 평가 지표로 선수를 분석하는 개인 프로젝트입니다.</p>
+    <div class="cards">
+      <a class="card stats" href="__STATS_URL__">
+        <div class="eyebrow">Stats</div>
+        <h2>시즌별 스탯 정리</h2>
+        <p>1949-50시즌부터 최신 시즌까지, 선수들의 경기당 기록과 고급 스탯(TS%, PER, WS, BPM 등)을 시즌을 골라 검색·정렬·필터링으로 살펴봅니다.</p>
+        <div class="go">스탯 보러가기 →</div>
+      </a>
+      <a class="card player" href="__PLAYER_URL__">
+        <div class="eyebrow">Career</div>
+        <h2>선수 커리어 추이</h2>
+        <p>선수 한 명을 검색하면 득점·어시스트·리바운드 등 스탯별 커리어 그래프와 시즌별 기록 전체를 볼 수 있습니다.</p>
+        <div class="go">선수 검색하기 →</div>
+      </a>
+      <a class="card ndl" href="__NDL_URL__">
+        <div class="eyebrow">NDL Score</div>
+        <h2>NDL Score 선수 평가</h2>
+        <p>생산성·효율성·플레이메이킹·수비기여·승리기여를 종합한 자체 지표로, 시즌을 골라 선수를 0~100점으로 랭킹합니다.</p>
+        <div class="go">랭킹 보러가기 →</div>
+      </a>
+      <a class="card scatter" href="__SCATTER_URL__">
+        <div class="eyebrow">Scatter</div>
+        <h2>선수 포지셔닝 그래프</h2>
+        <p>시즌을 골라 두 스탯의 산점도로 선수 위치를 비교합니다. 1949-50시즌부터 전 시즌을 지원하며, 점을 클릭하면 선수 기록을 볼 수 있습니다.</p>
+        <div class="go">그래프 보러가기 →</div>
+      </a>
+      <a class="card sim" href="__GAME_URL__">
+        <div class="eyebrow">Simulation</div>
+        <h2>시즌 시뮬레이션 엔진</h2>
+        <p>시즌과 두 팀을 골라 실제 선수 능력치 기반 포제션 시뮬레이션으로 가상 경기를 치릅니다. 슛 구역 데이터가 있는 1996-97시즌부터 지원합니다.</p>
+        <div class="go">경기 시뮬레이션 →</div>
+      </a>
+    </div>
+    <footer>운영자 leechi · basketball-reference.com 데이터 기반 · 개인 분석용 시범 페이지</footer>
+  </div>
+</div>

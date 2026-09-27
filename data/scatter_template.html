@@ -1,0 +1,448 @@
+<title>선수 포지셔닝 — NBA DATA LAB</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6; /* G */
+    --series-2:       #eb6834; /* F */
+    --series-3:       #1baf7a; /* C */
+    --row-hover:      #f0f4fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+      --series-3:       #199e70;
+      --row-hover:      #16233a;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --series-3:       #199e70;
+    --row-hover:      #16233a;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page-plane); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh; padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
+  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
+  .nav-link:hover { border-bottom-color: var(--series-1); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 6px; align-items: center; }
+  .controls label { font-size: 0.8rem; color: var(--text-muted); margin-right: 4px; }
+  .controls select, .controls input {
+    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 10px; font-size: 0.86rem; font-family: inherit;
+  }
+  .controls input { min-width: 160px; }
+  .axis-group { display: flex; align-items: center; }
+  .swap-btn {
+    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 0.9rem;
+  }
+  .swap-btn:hover { color: var(--text-primary); }
+  .count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+  .legend { display: flex; gap: 14px; margin: 10px 0 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.84rem; color: var(--text-secondary); cursor: pointer; user-select: none; background: none; border: none; font-family: inherit; padding: 4px 8px; border-radius: 6px; }
+  .legend-item:hover { background: var(--row-hover); }
+  .legend-item.off { opacity: 0.4; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .board { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .chart-card {
+    flex: 1 1 640px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px; position: relative;
+  }
+  svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+  .axis-tick text { fill: var(--text-muted); font-size: 11px; }
+  .axis-label { fill: var(--text-secondary); font-size: 12.5px; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .baseline { stroke: var(--baseline); stroke-width: 1; }
+  circle.hit { fill: transparent; cursor: pointer; }
+  circle.dot { stroke: var(--surface-1); stroke-width: 2; fill-opacity: 0.82; pointer-events: none; transition: r 0.1s ease, fill-opacity 0.1s ease; }
+  circle.dot.pos-G { fill: var(--series-1); }
+  circle.dot.pos-F { fill: var(--series-2); }
+  circle.dot.pos-C { fill: var(--series-3); }
+  g.point:hover circle.dot { r: 7; fill-opacity: 1; }
+  g.point.hovered circle.dot { r: 7; fill-opacity: 1; stroke: var(--text-primary); }
+  g.point.matched circle.dot { r: 7; fill-opacity: 1; }
+  g.point.dimmed circle.dot { fill-opacity: 0.12; }
+  g.point.hidden-group { display: none; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    opacity: 0; transform: translate(-50%, -110%); transition: opacity 0.08s ease;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .tt-name { font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+  .tooltip .tt-sub { color: var(--text-muted); font-size: 0.74rem; margin-bottom: 4px; }
+  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
+  .tooltip .tt-row .v { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .tooltip .tt-row .k { color: var(--text-secondary); }
+
+  .detail-card {
+    flex: 0 0 260px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; min-height: 200px; display: flex; flex-direction: column; align-items: center; text-align: center;
+  }
+  .detail-card.empty { justify-content: center; color: var(--text-muted); font-size: 0.85rem; }
+  .detail-card img { width: 108px; height: 108px; object-fit: cover; border-radius: 50%; border: 2px solid var(--border); background: var(--page-plane); }
+  .detail-card .d-name { font-weight: 700; font-size: 1.05rem; margin-top: 12px; }
+  .detail-card .d-sub { color: var(--text-muted); font-size: 0.82rem; margin-top: 2px; }
+  .detail-stats { width: 100%; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .detail-stats .stat { background: var(--page-plane); border-radius: 8px; padding: 8px 6px; }
+  .detail-stats .stat .k { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .detail-stats .stat .v { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .close-btn { align-self: flex-end; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 0; }
+
+  footer.page-foot { margin-top: 24px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <h1>선수 포지셔닝 — <span id="season-title">2025-26</span> 시즌</h1>
+      <p>두 스탯을 골라 선수들이 서로 어느 위치에 있는지 산점도로 비교합니다. 점을 클릭하면 선수 얼굴과 주요 기록을 볼 수 있습니다. 표본이 안정적인 15경기 이상 출전 선수만 표시하며, 1949-50 시즌부터 시즌을 골라 볼 수 있습니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__STATS_URL__">스탯 정리 페이지</a>
+        <a class="nav-link" href="__NDL_URL__">NDL Score 평가 페이지</a>
+        <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
+        <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="axis-group">
+        <label for="season-select">시즌</label>
+        <select id="season-select"></select>
+      </div>
+      <div class="axis-group">
+        <label for="x-axis">X축</label>
+        <select id="x-axis"></select>
+      </div>
+      <button class="swap-btn" id="swap-axes" title="X/Y 축 바꾸기">⇄</button>
+      <div class="axis-group">
+        <label for="y-axis">Y축</label>
+        <select id="y-axis"></select>
+      </div>
+      <input type="text" id="search" placeholder="선수 검색…" />
+      <span class="count" id="count-label"></span>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="board">
+      <div class="chart-card">
+        <svg class="chart" id="chart" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+      <div class="detail-card empty" id="detail">점을 클릭하면<br/>선수 정보가 여기에 표시됩니다.</div>
+    </div>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com (1949-50 ~ 2025-26 정규시즌) · 색상은 포지션(가드/포워드/센터)을 나타냅니다 · 선수 얼굴 이미지는 최근 시즌 선수 위주로만 보유하고 있어, 옛날 시즌 선수는 이미지 없이 기록만 표시됩니다.
+    </footer>
+  </div>
+</div>
+
+<script type="application/json" id="season-data">__SEASON_DATA__</script>
+<script type="application/json" id="image-data">__IMAGE_DATA__</script>
+<script>
+(function () {
+  const DB = JSON.parse(document.getElementById('season-data').textContent);
+  const images = JSON.parse(document.getElementById('image-data').textContent);
+  const SEASONS = DB.seasons;
+  let players = [];
+
+  const FIELDS = {
+    'FGA':      { label: '야투 시도 (FGA)', fmt: v => v.toFixed(1) },
+    'FG%':      { label: '야투율 (FG%)', fmt: v => (v * 100).toFixed(1) + '%' },
+    '3PA':      { label: '3점 시도 (3PA)', fmt: v => v.toFixed(1) },
+    '3P%':      { label: '3점 성공률 (3P%)', fmt: v => (v * 100).toFixed(1) + '%' },
+    'eFG%':     { label: '유효 야투율 (eFG%)', fmt: v => (v * 100).toFixed(1) + '%' },
+    'TS%':      { label: 'True Shooting % (TS%)', fmt: v => (v * 100).toFixed(1) + '%' },
+    'PTS':      { label: '득점 (PTS)', fmt: v => v.toFixed(1) },
+    'TRB':      { label: '리바운드 (TRB)', fmt: v => v.toFixed(1) },
+    'AST':      { label: '어시스트 (AST)', fmt: v => v.toFixed(1) },
+    'TOV':      { label: '턴오버 (TOV)', fmt: v => v.toFixed(1) },
+    'USG%':     { label: '사용률 (USG%)', fmt: v => v.toFixed(1) + '%' },
+    'MP':       { label: '출전시간 (MP)', fmt: v => v.toFixed(1) },
+    'PER':      { label: 'PER', fmt: v => v.toFixed(1) },
+    'NDL_Score':{ label: 'NDL Score', fmt: v => v.toFixed(1) },
+  };
+  const POS_LABEL = { G: '가드', F: '포워드', C: '센터' };
+
+  let xKey = 'FGA', yKey = 'FG%';
+  const hiddenGroups = new Set();
+  let selectedIdx = null;
+
+  const seasonSelect = document.getElementById('season-select');
+  const xSel = document.getElementById('x-axis');
+  const ySel = document.getElementById('y-axis');
+  Object.keys(FIELDS).forEach(k => {
+    const o1 = document.createElement('option'); o1.value = k; o1.textContent = FIELDS[k].label;
+    xSel.appendChild(o1);
+    const o2 = document.createElement('option'); o2.value = k; o2.textContent = FIELDS[k].label;
+    ySel.appendChild(o2);
+  });
+  xSel.value = xKey; ySel.value = yKey;
+
+  const legend = document.getElementById('legend');
+  ['G', 'F', 'C'].forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'legend-item';
+    btn.dataset.group = g;
+    btn.innerHTML = `<span class="legend-dot" style="background:var(--series-${g === 'G' ? 1 : g === 'F' ? 2 : 3})"></span>${POS_LABEL[g]}`;
+    btn.addEventListener('click', () => {
+      if (hiddenGroups.has(g)) hiddenGroups.delete(g); else hiddenGroups.add(g);
+      btn.classList.toggle('off', hiddenGroups.has(g));
+      render();
+    });
+    legend.appendChild(btn);
+  });
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const chart = document.getElementById('chart');
+  const tooltip = document.getElementById('tooltip');
+  const detail = document.getElementById('detail');
+  const M = { top: 24, right: 24, bottom: 46, left: 60 };
+  const W = 800, H = 520;
+  const plotW = W - M.left - M.right, plotH = H - M.top - M.bottom;
+
+  function domain(key) {
+    const vals = players.map(p => p[key]).filter(v => v != null);
+    // 해당 스탯이 그 시대에 아예 없으면(3점슛 1979-80 이전 등) 축 범위를 만들 수
+    // 없다. Math.min(...[])은 Infinity라서 그대로 두면 좌표가 NaN이 된다.
+    if (!vals.length) return null;
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.1 || 1;
+    lo = Math.max(0, lo - pad);
+    hi = hi + pad;
+    return [lo, hi];
+  }
+
+  function niceTicks(lo, hi, n) {
+    const span = hi - lo;
+    const step = span / n;
+    const mag = Math.pow(10, Math.floor(Math.log10(step)));
+    const norm = step / mag;
+    const niceStep = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+    const ticks = [];
+    let t = Math.ceil(lo / niceStep) * niceStep;
+    for (; t <= hi; t += niceStep) ticks.push(Math.round(t * 1000) / 1000);
+    return ticks;
+  }
+
+  function el(tag, attrs) {
+    const e = document.createElementNS(svgNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function fmtTick(key, v) {
+    if (key.includes('%')) return (v * 100).toFixed(0) + '%';
+    return v % 1 === 0 ? v.toString() : v.toFixed(1);
+  }
+
+  function render() {
+    chart.innerHTML = '';
+    const xd = domain(xKey), yd = domain(yKey);
+    if (!xd || !yd) {
+      const missing = [!xd ? FIELDS[xKey].label : null, !yd ? FIELDS[yKey].label : null]
+        .filter(Boolean).join(', ');
+      const msg = el('text', {
+        x: W / 2, y: H / 2, 'text-anchor': 'middle', class: 'axis-label',
+      });
+      msg.textContent = `${seasonSelect.value} 시즌에는 ${missing} 기록이 없습니다.`;
+      chart.appendChild(msg);
+      document.getElementById('count-label').textContent = '0명 표시';
+      return;
+    }
+    const [xlo, xhi] = xd;
+    const [ylo, yhi] = yd;
+    const sx = v => M.left + ((v - xlo) / (xhi - xlo)) * plotW;
+    const sy = v => M.top + plotH - ((v - ylo) / (yhi - ylo)) * plotH;
+
+    // gridlines + ticks
+    niceTicks(xlo, xhi, 6).forEach(t => {
+      const x = sx(t);
+      chart.appendChild(el('line', { class: 'gridline', x1: x, x2: x, y1: M.top, y2: M.top + plotH }));
+      const txt = el('text', { class: 'axis-tick', x, y: M.top + plotH + 18, 'text-anchor': 'middle' });
+      txt.textContent = fmtTick(xKey, t);
+      chart.appendChild(txt);
+    });
+    niceTicks(ylo, yhi, 6).forEach(t => {
+      const y = sy(t);
+      chart.appendChild(el('line', { class: 'gridline', x1: M.left, x2: M.left + plotW, y1: y, y2: y }));
+      const txt = el('text', { class: 'axis-tick', x: M.left - 10, y: y + 4, 'text-anchor': 'end' });
+      txt.textContent = fmtTick(yKey, t);
+      chart.appendChild(txt);
+    });
+    chart.appendChild(el('line', { class: 'baseline', x1: M.left, x2: M.left, y1: M.top, y2: M.top + plotH }));
+    chart.appendChild(el('line', { class: 'baseline', x1: M.left, x2: M.left + plotW, y1: M.top + plotH, y2: M.top + plotH }));
+
+    const xLabel = el('text', { class: 'axis-label', x: M.left + plotW / 2, y: H - 6, 'text-anchor': 'middle' });
+    xLabel.textContent = FIELDS[xKey].label;
+    chart.appendChild(xLabel);
+    const yLabel = el('text', { class: 'axis-label', x: 14, y: M.top + plotH / 2, 'text-anchor': 'middle', transform: `rotate(-90 14 ${M.top + plotH / 2})` });
+    yLabel.textContent = FIELDS[yKey].label;
+    chart.appendChild(yLabel);
+
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    let shown = 0;
+
+    players.forEach((p, i) => {
+      if (p[xKey] == null || p[yKey] == null) return;
+      const hidden = hiddenGroups.has(p.PosGroup);
+      const g = el('g', { class: 'point' + (hidden ? ' hidden-group' : '') });
+      g.dataset.idx = i;
+      const cx = sx(p[xKey]), cy = sy(p[yKey]);
+      const hit = el('circle', { class: 'hit', cx, cy, r: 13 });
+      const dot = el('circle', { class: 'dot pos-' + p.PosGroup, cx, cy, r: 5 });
+      g.appendChild(hit); g.appendChild(dot);
+
+      if (q && (p.Player.toLowerCase().includes(q) || p.Team.toLowerCase().includes(q))) {
+        g.classList.add('matched');
+      } else if (q) {
+        g.classList.add('dimmed');
+      }
+      if (!hidden) shown++;
+
+      g.addEventListener('pointerenter', () => showTooltip(p, cx, cy));
+      g.addEventListener('pointerleave', hideTooltip);
+      g.addEventListener('click', () => selectPlayer(i));
+      chart.appendChild(g);
+    });
+
+    document.getElementById('count-label').textContent = `${shown}명 표시`;
+  }
+
+  function showTooltip(p, cx, cy) {
+    const rect = chart.getBoundingClientRect();
+    const scaleX = rect.width / W, scaleY = rect.height / H;
+    tooltip.style.left = (cx * scaleX) + 'px';
+    tooltip.style.top = (cy * scaleY) + 'px';
+    const nameEl = document.createElement('div'); nameEl.className = 'tt-name'; nameEl.textContent = p.Player;
+    const subEl = document.createElement('div'); subEl.className = 'tt-sub'; subEl.textContent = `${p.Team} · ${p.Pos}`;
+    const row1 = document.createElement('div'); row1.className = 'tt-row';
+    const row1k = document.createElement('span'); row1k.className = 'k'; row1k.textContent = FIELDS[xKey].label;
+    const row1v = document.createElement('span'); row1v.className = 'v'; row1v.textContent = FIELDS[xKey].fmt(p[xKey]);
+    row1.append(row1k, row1v);
+    const row2 = document.createElement('div'); row2.className = 'tt-row';
+    const row2k = document.createElement('span'); row2k.className = 'k'; row2k.textContent = FIELDS[yKey].label;
+    const row2v = document.createElement('span'); row2v.className = 'v'; row2v.textContent = FIELDS[yKey].fmt(p[yKey]);
+    row2.append(row2k, row2v);
+    tooltip.replaceChildren(nameEl, subEl, row1, row2);
+    tooltip.classList.add('show');
+  }
+  function hideTooltip() { tooltip.classList.remove('show'); }
+
+  function selectPlayer(i) {
+    chart.querySelectorAll('g.point.hovered').forEach(g => g.classList.remove('hovered'));
+    const g = chart.querySelector(`g.point[data-idx="${i}"]`);
+    if (g) g.classList.add('hovered');
+    selectedIdx = i;
+    const p = players[i];
+    const img = images[p.BbrefId];
+    detail.classList.remove('empty');
+    const closeBtn = document.createElement('button'); closeBtn.className = 'close-btn'; closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', () => {
+      detail.classList.add('empty');
+      detail.textContent = '';
+      detail.append('점을 클릭하면 선수 정보가 여기에 표시됩니다.');
+      if (g) g.classList.remove('hovered');
+    });
+    const imgEl = document.createElement('img');
+    imgEl.src = img || FALLBACK_AVATAR;
+    imgEl.alt = p.Player;
+    const nameEl = document.createElement('div'); nameEl.className = 'd-name'; nameEl.textContent = p.Player;
+    const subEl = document.createElement('div'); subEl.className = 'd-sub'; subEl.textContent = `${p.Team} · ${p.Pos}`;
+    const statsGrid = document.createElement('div'); statsGrid.className = 'detail-stats';
+    // 옛날 시즌은 PER·TS% 등이 아예 없을 수 있어 그대로 toFixed를 부르면 터진다.
+    const num = (v, digits = 1) => (v == null ? '–' : v.toFixed(digits));
+    const pct = v => (v == null ? '–' : (v * 100).toFixed(1) + '%');
+    [['PTS', num(p.PTS)], ['TRB', num(p.TRB)], ['AST', num(p.AST)],
+     ['TS%', pct(p['TS%'])], ['NDL', num(p.NDL_Score)],
+     [xKey === 'MP' ? 'PER' : 'MP', xKey === 'MP' ? num(p.PER) : num(p.MP)]]
+      .forEach(([k, v]) => {
+        const stat = document.createElement('div'); stat.className = 'stat';
+        const kEl = document.createElement('div'); kEl.className = 'k'; kEl.textContent = k;
+        const vEl = document.createElement('div'); vEl.className = 'v'; vEl.textContent = v;
+        stat.append(kEl, vEl);
+        statsGrid.appendChild(stat);
+      });
+    detail.replaceChildren(closeBtn, imgEl, nameEl, subEl, statsGrid);
+  }
+
+  const FALLBACK_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#c3c2b7"/><circle cx="50" cy="38" r="18" fill="#898781"/><ellipse cx="50" cy="88" rx="30" ry="22" fill="#898781"/></svg>'
+  );
+
+  xSel.addEventListener('change', () => { xKey = xSel.value; render(); });
+  ySel.addEventListener('change', () => { yKey = ySel.value; render(); });
+  document.getElementById('swap-axes').addEventListener('click', () => {
+    [xKey, yKey] = [yKey, xKey];
+    xSel.value = xKey; ySel.value = yKey;
+    render();
+  });
+  document.getElementById('search').addEventListener('input', render);
+
+  function loadSeason(season) {
+    players = DB.scatter[season] || [];
+    document.getElementById('season-title').textContent = season;
+    // 이전 시즌에서 고른 선수는 인덱스가 달라져 엉뚱한 선수를 가리키므로 초기화
+    selectedIdx = null;
+    detail.classList.add('empty');
+    detail.textContent = '';
+    detail.append('점을 클릭하면 선수 정보가 여기에 표시됩니다.');
+    render();
+  }
+
+  SEASONS.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    seasonSelect.appendChild(o);
+  });
+  seasonSelect.value = SEASONS[SEASONS.length - 1];
+  seasonSelect.addEventListener('change', () => loadSeason(seasonSelect.value));
+
+  loadSeason(seasonSelect.value);
+})();
+</script>

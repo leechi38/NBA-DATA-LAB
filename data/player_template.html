@@ -1,0 +1,394 @@
+<title>NBA DATA LAB — 선수 커리어</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --series-2:       #eb6834;
+    --series-3:       #1baf7a;
+    --series-4:       #eda100;
+    --row-hover:      #f0f4fb;
+    --chip-bg:        #f0efe9;
+    --chip-bg-active: #e4edfb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+      --series-3:       #199e70;
+      --series-4:       #c98500;
+      --row-hover:      #16233a;
+      --chip-bg:        #232320;
+      --chip-bg-active: #16233a;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --series-3:       #199e70;
+    --series-4:       #c98500;
+    --row-hover:      #16233a;
+    --chip-bg:        #232320;
+    --chip-bg-active: #16233a;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page-plane); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh; padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
+  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
+  .nav-link:hover { border-bottom-color: var(--series-1); }
+
+  .search-wrap { position: relative; margin: 24px 0 8px; max-width: 420px; }
+  .search-wrap input {
+    width: 100%; background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
+    font-size: 0.95rem; font-family: inherit;
+  }
+  .search-results {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    max-height: 320px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .search-results[hidden] { display: none; }
+  .search-item { padding: 9px 14px; cursor: pointer; font-size: 0.88rem; display: flex; justify-content: space-between; gap: 8px; }
+  .search-item:hover, .search-item.active { background: var(--row-hover); }
+  .search-item .years { color: var(--text-muted); font-size: 0.8rem; white-space: nowrap; }
+
+  .player-card {
+    margin-top: 20px; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px 22px; display: none;
+  }
+  .player-card.is-visible { display: block; }
+  .player-card h2 { margin: 0 0 4px; font-size: 1.3rem; }
+  .player-card .meta { color: var(--text-secondary); font-size: 0.88rem; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+  .chip {
+    font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    background: var(--chip-bg); color: var(--text-secondary); border: 1px solid transparent;
+    user-select: none;
+  }
+  .chip.active { background: var(--chip-bg-active); color: var(--text-primary); border-color: var(--dot); font-weight: 600; }
+  .chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dot); margin-right: 6px; }
+
+  .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 16px; }
+  .chart-tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px 10px; }
+  .chart-tile h3 { margin: 0 0 2px; font-size: 0.86rem; color: var(--text-secondary); font-weight: 600; }
+  .chart-tile .latest { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 2px; }
+  .chart-tile svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart-tile .pt { cursor: pointer; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; background: var(--text-primary); color: var(--page-plane);
+    font-size: 0.76rem; padding: 5px 9px; border-radius: 6px; white-space: nowrap; z-index: 20;
+    transform: translate(-50%, -130%); opacity: 0; transition: opacity 0.08s ease;
+  }
+  .tooltip.is-visible { opacity: 1; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); margin-top: 22px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.84rem; white-space: nowrap; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface-1);
+    text-align: right; padding: 9px 11px; font-weight: 600; color: var(--text-secondary);
+    border-bottom: 1px solid var(--grid);
+  }
+  thead th:first-child, thead th:nth-child(2) { text-align: left; }
+  tbody td { padding: 7px 11px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  tbody td:first-child, tbody td:nth-child(2) { text-align: left; font-variant-numeric: normal; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--row-hover); }
+
+  .empty-state { padding: 48px 16px; text-align: center; color: var(--text-muted); font-size: 0.92rem; }
+  footer.page-foot { margin-top: 28px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+
+  @media (max-width: 480px) {
+    .chart-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <h1>NBA DATA LAB — 선수 커리어</h1>
+      <p>선수를 검색하면 basketball-reference.com 데이터를 기반으로 정리한 정규시즌 커리어 전체(1949-50 시즌~)의 스탯 추이를 확인할 수 있습니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__STATS_URL__">시즌 스탯</a>
+        <a class="nav-link" href="__NDL_URL__">NDL Score</a>
+        <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
+        <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
+      </div>
+    </header>
+
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="선수 이름 검색… (예: LeBron, Jokic, Curry)" autocomplete="off" />
+      <div class="search-results" id="search-results" hidden></div>
+    </div>
+
+    <section class="player-card" id="player-card">
+      <h2 id="player-name"></h2>
+      <div class="meta" id="player-meta"></div>
+
+      <div class="chip-row" id="chip-row"></div>
+      <div class="chart-grid" id="chart-grid"></div>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="table-head"></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="empty-state" id="empty-state">선수를 검색해 커리어 추이를 확인해 보세요.</div>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com · 슛 구역별 데이터는 1996-97 시즌부터, 스틸/블록은 1973-74 시즌부터, 3점슛은 1979-80 시즌부터 집계되어 이전 시즌은 해당 값이 비어 있을 수 있습니다. 이 페이지는 개인 분석 목적의 시범(trial) 페이지입니다.
+    </footer>
+  </div>
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<script type="application/json" id="careers-data">__CAREERS_DATA__</script>
+<script>
+(function () {
+  const DB = JSON.parse(document.getElementById('careers-data').textContent);
+  const STAT_KEYS = DB.statKeys; // [G, MP, PTS, TRB, AST, STL, BLK, FG%, 3P%, TS%, PER, WS, BPM, NDL_Score]
+  const PLAYERS = DB.players;    // bbrefId -> {name, seasons:[[year, team, ...STAT_KEYS], ...]}
+
+  const STAT_META = {
+    'PTS':       { label: '득점 (PTS)',        color: 'var(--series-1)', fmt: v => v.toFixed(1) },
+    'TRB':       { label: '리바운드 (TRB)',     color: 'var(--series-2)', fmt: v => v.toFixed(1) },
+    'AST':       { label: '어시스트 (AST)',     color: 'var(--series-3)', fmt: v => v.toFixed(1) },
+    'PER':       { label: '효율 (PER)',        color: 'var(--series-4)', fmt: v => v.toFixed(1) },
+    'STL':       { label: '스틸 (STL)',        color: 'var(--series-1)', fmt: v => v.toFixed(1) },
+    'BLK':       { label: '블록 (BLK)',        color: 'var(--series-2)', fmt: v => v.toFixed(1) },
+    'TS%':       { label: '진 슛 성공률 (TS%)', color: 'var(--series-3)', fmt: v => (v * 100).toFixed(1) + '%' },
+    'WS':        { label: '승리 기여 (WS)',     color: 'var(--series-4)', fmt: v => v.toFixed(1) },
+    'BPM':       { label: '박스+/- (BPM)',      color: 'var(--series-1)', fmt: v => (v > 0 ? '+' : '') + v.toFixed(1) },
+    'NDL_Score': { label: 'NDL Score',         color: 'var(--series-2)', fmt: v => v.toFixed(1) },
+  };
+  const DEFAULT_STATS = ['PTS', 'TRB', 'AST', 'PER'];
+  let activeStats = DEFAULT_STATS.slice();
+  let currentId = null;
+
+  const seasonLabel = year => `${year - 1}-${String(year).slice(-2)}`;
+
+  function idx(key) { return STAT_KEYS.indexOf(key); }
+
+  // ---------- 검색 ----------
+  const searchInput = document.getElementById('search');
+  const resultsBox = document.getElementById('search-results');
+
+  function doSearch(q) {
+    q = q.trim().toLowerCase();
+    if (!q) { resultsBox.hidden = true; resultsBox.innerHTML = ''; return; }
+    const matches = [];
+    for (const id in PLAYERS) {
+      const p = PLAYERS[id];
+      if (p.name.toLowerCase().includes(q)) matches.push({ id, p });
+      if (matches.length >= 40) break;
+    }
+    matches.sort((a, b) => b.p.seasons.length - a.p.seasons.length);
+    const top = matches.slice(0, 8);
+    if (!top.length) {
+      resultsBox.innerHTML = `<div class="search-item">일치하는 선수가 없습니다</div>`;
+      resultsBox.hidden = false;
+      return;
+    }
+    resultsBox.innerHTML = top.map(({ id, p }) => {
+      const first = p.seasons[0][0], last = p.seasons[p.seasons.length - 1][0];
+      return `<div class="search-item" data-id="${id}"><span>${p.name}</span><span class="years">${seasonLabel(first)} ~ ${seasonLabel(last)}</span></div>`;
+    }).join('');
+    resultsBox.hidden = false;
+  }
+
+  searchInput.addEventListener('input', () => doSearch(searchInput.value));
+  searchInput.addEventListener('focus', () => { if (searchInput.value.trim()) doSearch(searchInput.value); });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrap')) resultsBox.hidden = true;
+  });
+  resultsBox.addEventListener('click', e => {
+    const item = e.target.closest('.search-item[data-id]');
+    if (!item) return;
+    selectPlayer(item.dataset.id);
+    resultsBox.hidden = true;
+    searchInput.value = '';
+  });
+
+  // ---------- 칩(스탯 토글) ----------
+  const chipRow = document.getElementById('chip-row');
+  function renderChips() {
+    chipRow.innerHTML = Object.keys(STAT_META).map(key => {
+      const meta = STAT_META[key];
+      const active = activeStats.includes(key);
+      return `<span class="chip ${active ? 'active' : ''}" data-key="${key}" style="--dot:${meta.color}">
+                <span class="dot"></span>${meta.label}</span>`;
+    }).join('');
+  }
+  chipRow.addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    const key = chip.dataset.key;
+    if (activeStats.includes(key)) activeStats = activeStats.filter(k => k !== key);
+    else activeStats.push(key);
+    renderChips();
+    renderCharts(currentId);
+  });
+
+  // ---------- 차트 ----------
+  const tooltip = document.getElementById('tooltip');
+  function showTooltip(evt, text) {
+    tooltip.textContent = text;
+    tooltip.style.left = evt.clientX + 'px';
+    tooltip.style.top = evt.clientY + 'px';
+    tooltip.classList.add('is-visible');
+  }
+  function hideTooltip() { tooltip.classList.remove('is-visible'); }
+
+  function buildChartSVG(key, seasons) {
+    const meta = STAT_META[key];
+    const i = idx(key);
+    const pts = seasons.map(row => ({ year: row[0], v: row[2 + i] })).filter(d => d.v != null);
+    if (!pts.length) return '<div class="empty-state" style="padding:24px 8px">데이터 없음</div>';
+
+    const W = 280, H = 110, padL = 30, padR = 8, padT = 10, padB = 18;
+    const innerW = W - padL - padR, innerH = H - padT - padB;
+    const minV = Math.min(...pts.map(d => d.v));
+    const maxV = Math.max(...pts.map(d => d.v));
+    const span = (maxV - minV) || 1;
+    const yFor = v => padT + innerH - ((v - minV) / span) * innerH;
+    const xFor = n => pts.length === 1 ? padL + innerW / 2 : padL + (n / (pts.length - 1)) * innerW;
+
+    const linePath = pts.map((d, n) => `${n === 0 ? 'M' : 'L'}${xFor(n).toFixed(1)},${yFor(d.v).toFixed(1)}`).join(' ');
+    const baselineY = (padT + innerH).toFixed(1);
+
+    const circles = pts.map((d, n) => {
+      const x = xFor(n).toFixed(1), y = yFor(d.v).toFixed(1);
+      const isEdge = n === 0 || n === pts.length - 1;
+      return `<circle class="pt" cx="${x}" cy="${y}" r="${isEdge ? 3.5 : 2.5}" fill="${meta.color}"
+                data-year="${d.year}" data-val="${d.v}" />`;
+    }).join('');
+
+    return `
+      <svg viewBox="0 0 ${W} ${H}">
+        <line x1="${padL}" y1="${baselineY}" x2="${W - padR}" y2="${baselineY}" stroke="var(--baseline)" stroke-width="1" />
+        <text x="${padL - 4}" y="${padT + 3}" font-size="8.5" fill="var(--text-muted)" text-anchor="end">${maxV.toFixed(1)}</text>
+        <text x="${padL - 4}" y="${baselineY}" font-size="8.5" fill="var(--text-muted)" text-anchor="end">${minV.toFixed(1)}</text>
+        <text x="${padL}" y="${H - 4}" font-size="8.5" fill="var(--text-muted)">${seasonLabel(pts[0].year)}</text>
+        <text x="${W - padR}" y="${H - 4}" font-size="8.5" fill="var(--text-muted)" text-anchor="end">${seasonLabel(pts[pts.length - 1].year)}</text>
+        <path d="${linePath}" fill="none" stroke="${meta.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+        ${circles}
+      </svg>`;
+  }
+
+  function renderCharts(id) {
+    const grid = document.getElementById('chart-grid');
+    const p = PLAYERS[id];
+    grid.innerHTML = activeStats.map(key => {
+      const meta = STAT_META[key];
+      const seasons = p.seasons;
+      const i = idx(key);
+      const lastRow = [...seasons].reverse().find(r => r[2 + i] != null);
+      const latest = lastRow ? meta.fmt(lastRow[2 + i]) : '–';
+      return `<div class="chart-tile">
+                <h3>${meta.label}</h3>
+                <div class="latest" style="color:${meta.color}">${latest}</div>
+                ${buildChartSVG(key, seasons)}
+              </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.pt').forEach(c => {
+      c.addEventListener('mousemove', evt => {
+        showTooltip(evt, `${seasonLabel(+c.dataset.year)} · ${(+c.dataset.val).toLocaleString(undefined, {maximumFractionDigits: 3})}`);
+      });
+      c.addEventListener('mouseleave', hideTooltip);
+    });
+  }
+
+  // ---------- 테이블 ----------
+  function renderTable(id) {
+    const p = PLAYERS[id];
+    const cols = ['G', 'MP', 'PTS', 'TRB', 'AST', 'STL', 'BLK', 'FG%', '3P%', 'TS%', 'PER', 'WS', 'BPM', 'NDL_Score'];
+    document.getElementById('table-head').innerHTML =
+      '<th>시즌</th><th>팀</th>' + cols.map(c => `<th>${c}</th>`).join('');
+    const rows = [...p.seasons].reverse();
+    document.getElementById('table-body').innerHTML = rows.map(row => {
+      const cells = cols.map(c => {
+        const v = row[2 + idx(c)];
+        if (v == null) return '<td>–</td>';
+        if (c === 'FG%' || c === '3P%' || c === 'TS%') return `<td>${(v * 100).toFixed(1)}</td>`;
+        if (c === 'BPM') return `<td>${(v > 0 ? '+' : '') + v.toFixed(1)}</td>`;
+        return `<td>${typeof v === 'number' ? v.toFixed(1) : v}</td>`;
+      }).join('');
+      return `<tr><td>${seasonLabel(row[0])}</td><td>${row[1]}</td>${cells}</tr>`;
+    }).join('');
+  }
+
+  // ---------- 선수 선택 ----------
+  function selectPlayer(id) {
+    if (!PLAYERS[id]) return;
+    currentId = id;
+    const p = PLAYERS[id];
+    document.getElementById('player-name').textContent = p.name;
+    const first = p.seasons[0][0], last = p.seasons[p.seasons.length - 1][0];
+    const teams = Array.from(new Set(p.seasons.map(r => r[1]))).join(', ');
+    document.getElementById('player-meta').textContent =
+      `${seasonLabel(first)} ~ ${seasonLabel(last)} · 통산 ${p.seasons.length}시즌 · ${teams}`;
+
+    renderChips();
+    renderCharts(id);
+    renderTable(id);
+
+    document.getElementById('player-card').classList.add('is-visible');
+    document.getElementById('empty-state').style.display = 'none';
+    if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
+  }
+
+  // ---------- 진입 ----------
+  const initialId = location.hash.slice(1);
+  if (initialId && PLAYERS[initialId]) {
+    selectPlayer(initialId);
+  } else if (PLAYERS['jamesle01']) {
+    selectPlayer('jamesle01'); // 기본 예시
+  }
+
+  window.addEventListener('hashchange', () => {
+    const id = location.hash.slice(1);
+    if (id && PLAYERS[id]) selectPlayer(id);
+  });
+})();
+</script>

@@ -1,0 +1,88 @@
+{
+  "recommended": "B_제약",
+  "reason": "무제약 해는 승리기여(WS·VORP)에 83%가 몰려 순환논리가 되므로 배제. 상하한 제약 버전이 5개 축을 모두 유지하면서 OOS 성능도 개선.",
+  "components": [
+    "NDL_Production",
+    "NDL_Efficiency",
+    "NDL_Playmaking",
+    "NDL_Defense",
+    "NDL_WinImpact"
+  ],
+  "labels": [
+    "생산성",
+    "효율성",
+    "플레이메이킹",
+    "수비기여",
+    "승리기여"
+  ],
+  "original_weights": [
+    0.25,
+    0.2,
+    0.15,
+    0.2,
+    0.2
+  ],
+  "optimized_weights": [
+    0.0902,
+    0.2971,
+    0.0929,
+    0.1198,
+    0.4
+  ],
+  "oos_corr_original": 0.8661,
+  "oos_corr_optimized": 0.9099,
+  "variants": {
+    "A_무제약": {
+      "oos_corr": 0.9452,
+      "components": [
+        "NDL_Production",
+        "NDL_Efficiency",
+        "NDL_Playmaking",
+        "NDL_Defense",
+        "NDL_WinImpact"
+      ],
+      "weights": [
+        0.0,
+        0.0764,
+        0.0294,
+        0.0648,
+        0.8294
+      ]
+    },
+    "B_제약": {
+      "oos_corr": 0.9099,
+      "components": [
+        "NDL_Production",
+        "NDL_Efficiency",
+        "NDL_Playmaking",
+        "NDL_Defense",
+        "NDL_WinImpact"
+      ],
+      "weights": [
+        0.0902,
+        0.2971,
+        0.0929,
+        0.1198,
+        0.4
+      ]
+    },
+    "C_승리기여제외": {
+      "oos_corr": 0.711,
+      "components": [
+        "NDL_Production",
+        "NDL_Efficiency",
+        "NDL_Playmaking",
+        "NDL_Defense"
+      ],
+      "weights": [
+        0.2771,
+        0.4614,
+        0.1235,
+        0.138
+      ]
+    }
+  },
+  "train_seasons": 29,
+  "test_seasons": 30,
+  "note": "학습=홀수연도 시즌, 검증=짝수연도 시즌. 시즌 단위 분리로 정보 누수 차단."
+}

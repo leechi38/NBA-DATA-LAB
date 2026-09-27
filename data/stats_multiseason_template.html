@@ -1,0 +1,287 @@
+<title>NBA DATA LAB — 시즌별 스탯</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --seq-100:        #cde2fb;
+    --seq-400:        #3987e5;
+    --row-hover:      #f0f4fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --seq-100:        #184f95;
+      --seq-400:        #3987e5;
+      --row-hover:      #16233a;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --seq-100:        #184f95;
+    --seq-400:        #3987e5;
+    --row-hover:      #16233a;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
+  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
+  .nav-link:hover { border-bottom-color: var(--series-1); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .tile .tile-label { font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .tile .tile-value { font-size: 1.6rem; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tile .tile-sub { font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 12px; align-items: center; }
+  .controls input, .controls select {
+    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; font-family: inherit;
+  }
+  .controls input { flex: 1 1 220px; min-width: 160px; }
+  .controls select#season-select { font-weight: 600; }
+  .controls .count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; white-space: nowrap; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface-1); z-index: 1;
+    text-align: right; padding: 10px 12px; font-weight: 600; color: var(--text-secondary);
+    border-bottom: 1px solid var(--grid); cursor: pointer; user-select: none;
+  }
+  thead th:first-child, thead th:nth-child(2), thead th:nth-child(3) { text-align: left; }
+  thead th .arrow { font-size: 0.7rem; color: var(--series-1); margin-left: 3px; }
+  tbody td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  tbody td:first-child, tbody td:nth-child(2), tbody td:nth-child(3) { text-align: left; font-variant-numeric: normal; }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr:last-child td { border-bottom: none; }
+  .player-name { font-weight: 600; }
+  .player-name a { color: inherit; text-decoration: none; }
+  .player-name a:hover { color: var(--series-1); text-decoration: underline; }
+  .team-badge { color: var(--text-muted); font-size: 0.8rem; }
+
+  footer.page-foot { margin-top: 28px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+  .empty-state { padding: 32px; text-align: center; color: var(--text-muted); }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <h1>NBA DATA LAB — <span id="season-title">시즌별</span> 정규시즌 스탯</h1>
+      <p>basketball-reference.com 데이터를 기반으로 정리한 선수 개인 기록(경기당 평균 + 고급 스탯)입니다. 상단에서 시즌을 선택할 수 있고, 트레이드된 선수는 시즌 합산 기록으로 통합했습니다. 선수명을 클릭하면 커리어 추이를 볼 수 있습니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__NDL_URL__">NDL Score</a>
+        <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
+        <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
+        <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
+      </div>
+    </header>
+
+    <section class="tiles" id="tiles"></section>
+
+    <section class="controls">
+      <select id="season-select"></select>
+      <input type="text" id="search" placeholder="선수 또는 팀 검색…" />
+      <select id="pos-filter">
+        <option value="">전체 포지션</option>
+      </select>
+      <span class="count" id="count-label"></span>
+    </section>
+
+    <div class="table-scroll">
+      <table id="stats-table">
+        <thead>
+          <tr id="thead-row"></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com (1949-50 ~ 2025-26 정규시즌) · 트레이드 선수는 이적 팀 합산 기준 · 이 페이지는 개인 분석 목적의 시범(trial) 페이지입니다.
+    </footer>
+  </div>
+</div>
+
+<script type="application/json" id="season-data">__SEASON_DATA__</script>
+<script>
+(function () {
+  const DB = JSON.parse(document.getElementById('season-data').textContent);
+  const SEASONS = DB.seasons; // 오래된 -> 최신 순, e.g. ["1949-50", ..., "2025-26"]
+  let players = [];
+
+  const PLAYER_URL = '__PLAYER_URL__';
+
+  const columns = [
+    { key: 'Player', label: '선수', numeric: false },
+    { key: 'Team', label: '팀', numeric: false },
+    { key: 'Pos', label: '포지션', numeric: false },
+    { key: 'G', label: 'G', numeric: true, fmt: v => v.toFixed(0) },
+    { key: 'MP', label: 'MP', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'PTS', label: 'PTS', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'TRB', label: 'TRB', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'AST', label: 'AST', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'STL', label: 'STL', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'BLK', label: 'BLK', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'FG%', label: 'FG%', numeric: true, fmt: v => (v * 100).toFixed(1) },
+    { key: '3P%', label: '3P%', numeric: true, fmt: v => (v * 100).toFixed(1) },
+    { key: 'TS%', label: 'TS%', numeric: true, fmt: v => (v * 100).toFixed(1) },
+    { key: 'PER', label: 'PER', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'WS', label: 'WS', numeric: true, fmt: v => v.toFixed(1) },
+    { key: 'BPM', label: 'BPM', numeric: true, fmt: v => (v > 0 ? '+' : '') + v.toFixed(1) },
+  ];
+
+  let sortKey = 'PTS';
+  let sortDir = -1;
+
+  const seasonSelect = document.getElementById('season-select');
+  SEASONS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s + ' 시즌';
+    seasonSelect.appendChild(opt);
+  });
+  seasonSelect.value = SEASONS[SEASONS.length - 1];
+  seasonSelect.addEventListener('change', () => loadSeason(seasonSelect.value));
+
+  const posFilter = document.getElementById('pos-filter');
+
+  function loadSeason(season) {
+    players = DB.stats[season] || [];
+    document.getElementById('season-title').textContent = season;
+
+    const posSet = Array.from(new Set(players.map(p => p.Pos).filter(Boolean))).sort();
+    posFilter.innerHTML = '<option value="">전체 포지션</option>' +
+      posSet.map(pos => `<option value="${pos}">${pos}</option>`).join('');
+
+    renderTiles();
+    renderHead();
+    renderBody();
+  }
+
+  function renderTiles() {
+    if (!players.length) { document.getElementById('tiles').innerHTML = ''; return; }
+    const leaders = [
+      { label: '득점 1위 (PTS)', key: 'PTS', fmt: v => v.toFixed(1) },
+      { label: '리바운드 1위 (TRB)', key: 'TRB', fmt: v => v.toFixed(1) },
+      { label: '어시스트 1위 (AST)', key: 'AST', fmt: v => v.toFixed(1) },
+    ];
+    const tiles = document.getElementById('tiles');
+    tiles.innerHTML = '';
+    leaders.forEach(l => {
+      const top = players.reduce((a, b) => (b[l.key] ?? -Infinity) > (a[l.key] ?? -Infinity) ? b : a);
+      const div = document.createElement('div');
+      div.className = 'tile';
+      div.innerHTML = `<div class="tile-label">${l.label}</div>
+        <div class="tile-value">${l.fmt(top[l.key])}</div>
+        <div class="tile-sub">${top.Player} · ${top.Team}</div>`;
+      tiles.appendChild(div);
+    });
+  }
+
+  function renderHead() {
+    const row = document.getElementById('thead-row');
+    row.innerHTML = '';
+    columns.forEach(col => {
+      const th = document.createElement('th');
+      th.textContent = col.label;
+      if (col.key === sortKey) {
+        const arrow = document.createElement('span');
+        arrow.className = 'arrow';
+        arrow.textContent = sortDir === -1 ? '▼' : '▲';
+        th.appendChild(arrow);
+      }
+      th.addEventListener('click', () => {
+        if (sortKey === col.key) { sortDir *= -1; }
+        else { sortKey = col.key; sortDir = col.numeric ? -1 : 1; }
+        renderHead(); renderBody();
+      });
+      row.appendChild(th);
+    });
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const pos = posFilter.value;
+    return players.filter(p => {
+      if (pos && p.Pos !== pos) return false;
+      if (q && !(p.Player.toLowerCase().includes(q) || (p.Team || '').toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }
+
+  function renderBody() {
+    const rows = getFiltered().slice().sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+      return sortDir * (av - bv);
+    });
+    const tbody = document.getElementById('tbody');
+    document.getElementById('count-label').textContent = `${rows.length}명 표시`;
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="${columns.length}"><div class="empty-state">조건에 맞는 선수가 없습니다.</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(p => {
+      return '<tr>' + columns.map(col => {
+        if (col.key === 'Player') {
+          const link = p.BbrefId ? `${PLAYER_URL}#${p.BbrefId}` : null;
+          return `<td class="player-name">${link ? `<a href="${link}" target="_blank" rel="noopener">${p.Player}</a>` : p.Player}</td>`;
+        }
+        if (col.key === 'Team') return `<td><span class="team-badge">${p.TeamsPlayed && p.TeamsPlayed !== p.Team ? p.TeamsPlayed : p.Team}</span></td>`;
+        if (col.key === 'Pos') return `<td>${p.Pos ?? ''}</td>`;
+        const v = p[col.key];
+        return `<td>${v == null ? '–' : col.fmt(v)}</td>`;
+      }).join('') + '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('search').addEventListener('input', renderBody);
+  posFilter.addEventListener('change', renderBody);
+
+  loadSeason(seasonSelect.value);
+})();
+</script>

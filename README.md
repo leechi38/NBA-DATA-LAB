@@ -3,7 +3,7 @@
 NBA 77개 시즌 선수 데이터를 수집·가공하고, 직접 만든 선수 평가 지표가 실제로 유효한지
 팀 성적으로 검증한 개인 프로젝트입니다.
 
-[![NDL Score에서 시즌을 바꾸고, 선수 커리어에서 Michael Jordan의 스탯 추이를 살펴보는 화면](docs/demo.gif)](https://nba-data-lab.vercel.app)
+[![NDL Score에서 시즌을 바꾸고, 선수 커리어에서 Michael Jordan의 통산 기록과 스탯 추이를 살펴보는 화면](docs/demo.gif)](https://nba-data-lab.vercel.app)
 
 **▶ 이미지를 클릭하면 실제 사이트로 이동합니다 — https://nba-data-lab.vercel.app**
 
@@ -201,8 +201,12 @@ NDL Score 상위 15명에는 40경기 미만이 한 명도 없습니다.
 |---|---|
 | [![홈 — 규모 수치와 척도 상한에 닿은 다섯 시즌](docs/demo4.png)](https://nba-data-lab.vercel.app) | [![NDL Score — 학습된 5개 축 가중치와 시즌 순위표](docs/demo1.png)](https://nba-data-lab.vercel.app/ndl) |
 | **홈** — 수집 규모와, 25,292개 선수-시즌 중 100점 상한에 닿은 다섯 시즌 | **NDL Score** — 학습된 가중치와 순위표. 선수를 누르면 축별 기여가 펼쳐짐 |
-| [![선수 포지셔닝 — PER과 NDL Score를 두 축으로 놓은 산점도](docs/demo3.png)](https://nba-data-lab.vercel.app/scatter) | [![선수 커리어 — 스탯별 커리어 추이와 시즌 기록표](docs/demo2.png)](https://nba-data-lab.vercel.app/player) |
-| **선수 포지셔닝** — 두 스탯을 축으로 비교. 점을 누르면 선수 정보가 열림 | **선수 커리어** — 선수를 검색해 스탯별 추이와 시즌 기록을 확인 |
+
+[![선수 포지셔닝 — PER과 NDL Score를 두 축으로 놓은 산점도](docs/demo3.png)](https://nba-data-lab.vercel.app/scatter)
+
+**선수 포지셔닝** — 두 스탯을 축으로 놓고 비교합니다. 점을 누르면 선수 정보가 열립니다.
+
+선수 커리어 페이지는 위 데모 영상에서 볼 수 있습니다.
 
 ## 한계
 

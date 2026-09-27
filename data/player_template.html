@@ -148,19 +148,22 @@ __BASE_CSS__
   //   game   경기당 기록. 경기 수로 가중평균해야 5경기 시즌이 82경기 시즌과 같은 무게를 갖지 않는다.
   //   minute 분당 비율 지표(PER·BPM·TS%). 총 출전시간으로 가중평균한다.
   //   sum    시즌 누적값(WS). 평균이 아니라 합계가 통산 기록이다.
+  // 선언 순서가 곧 칩과 타일의 순서다. 앞의 네 개가 기본으로 켜져 있고,
+  // 서로 다른 색을 갖도록 배치했다(뒤쪽 스탯끼리는 색이 겹칠 수 있다).
   const STAT_META = {
-    'PTS':       { label: '득점 (PTS)',        color: 'var(--series-1)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'NDL_Score': { label: 'NDL Score',         color: 'var(--series-1)', agg: 'minute', fmt: v => v.toFixed(1) },
+    'PTS':       { label: '득점 (PTS)',        color: 'var(--series-2)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'PER':       { label: '효율 (PER)',        color: 'var(--series-3)', agg: 'minute', fmt: v => v.toFixed(1) },
+    'WS':        { label: '승리 기여 (WS)',     color: 'var(--series-4)', agg: 'sum',    fmt: v => v.toFixed(1) },
     'TRB':       { label: '리바운드 (TRB)',     color: 'var(--series-2)', agg: 'game',   fmt: v => v.toFixed(1) },
     'AST':       { label: '어시스트 (AST)',     color: 'var(--series-3)', agg: 'game',   fmt: v => v.toFixed(1) },
-    'PER':       { label: '효율 (PER)',        color: 'var(--series-4)', agg: 'minute', fmt: v => v.toFixed(1) },
-    'STL':       { label: '스틸 (STL)',        color: 'var(--series-1)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'STL':       { label: '스틸 (STL)',        color: 'var(--series-4)', agg: 'game',   fmt: v => v.toFixed(1) },
     'BLK':       { label: '블록 (BLK)',        color: 'var(--series-2)', agg: 'game',   fmt: v => v.toFixed(1) },
     'TS%':       { label: '진 슛 성공률 (TS%)', color: 'var(--series-3)', agg: 'minute', fmt: v => (v * 100).toFixed(1) + '%' },
-    'WS':        { label: '승리 기여 (WS)',     color: 'var(--series-4)', agg: 'sum',    fmt: v => v.toFixed(1) },
-    'BPM':       { label: '박스+/- (BPM)',      color: 'var(--series-1)', agg: 'minute', fmt: v => (v > 0 ? '+' : '') + v.toFixed(1) },
-    'NDL_Score': { label: 'NDL Score',         color: 'var(--series-2)', agg: 'minute', fmt: v => v.toFixed(1) },
+    'BPM':       { label: '박스+/- (BPM)',      color: 'var(--series-4)', agg: 'minute', fmt: v => (v > 0 ? '+' : '') + v.toFixed(1) },
   };
-  const DEFAULT_STATS = ['PTS', 'TRB', 'AST', 'PER'];
+  const STAT_ORDER = Object.keys(STAT_META);
+  const DEFAULT_STATS = ['NDL_Score', 'PTS', 'PER', 'WS'];
   let activeStats = DEFAULT_STATS.slice();
   let currentId = null;
 
@@ -211,7 +214,7 @@ __BASE_CSS__
   // ---------- 칩(스탯 토글) ----------
   const chipRow = document.getElementById('chip-row');
   function renderChips() {
-    chipRow.innerHTML = Object.keys(STAT_META).map(key => {
+    chipRow.innerHTML = STAT_ORDER.map(key => {
       const meta = STAT_META[key];
       const active = activeStats.includes(key);
       return `<span class="chip ${active ? 'active' : ''}" data-key="${key}" style="--dot:${meta.color}">
@@ -222,8 +225,12 @@ __BASE_CSS__
     const chip = e.target.closest('.chip');
     if (!chip) return;
     const key = chip.dataset.key;
-    if (activeStats.includes(key)) activeStats = activeStats.filter(k => k !== key);
-    else activeStats.push(key);
+    if (activeStats.includes(key)) {
+      activeStats = activeStats.filter(k => k !== key);
+    } else {
+      // 누른 순서가 아니라 칩 순서대로 놓는다. 껐다 켤 때 타일이 자리를 옮기지 않도록.
+      activeStats = STAT_ORDER.filter(k => k === key || activeStats.includes(k));
+    }
     renderChips();
     renderCharts(currentId);
   });

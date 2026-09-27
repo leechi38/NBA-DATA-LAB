@@ -1,0 +1,840 @@
+<title>NBA DATA LAB — 시즌 시뮬레이션</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6; /* Team A */
+    --series-2:       #eb6834; /* Team B */
+    --good:           #0ca30c;
+    --row-hover:      #f0f4fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+      --good:           #0ca30c;
+      --row-hover:      #16233a;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --good:           #0ca30c;
+    --row-hover:      #16233a;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page-plane); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh; padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
+  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
+  .nav-link:hover { border-bottom-color: var(--series-1); }
+
+  .mode-tabs { display: flex; gap: 8px; margin: 22px 0 0; }
+  .mode-tab {
+    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 8px 8px 0 0; padding: 9px 18px; font-size: 0.88rem; font-family: inherit; cursor: pointer;
+    border-bottom: none; position: relative; top: 1px;
+  }
+  .mode-tab.active { color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--surface-1); background: var(--surface-1); }
+  .mode-tab:not(.active) { background: transparent; border-color: transparent; }
+
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 0 10px 10px 10px;
+    padding: 20px; margin: 0 0 20px;
+  }
+  .panel.hidden { display: none; }
+
+  .setup { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+  .setup .field { display: flex; flex-direction: column; gap: 6px; }
+  .setup label { font-size: 0.78rem; color: var(--text-muted); }
+  .setup select, .setup input[type=text] {
+    background: var(--page-plane); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px; font-size: 0.92rem; font-family: inherit; min-width: 160px;
+  }
+  .vs { font-weight: 700; color: var(--text-muted); padding-bottom: 9px; }
+  button.sim-btn, button.ghost-btn {
+    border-radius: 8px; padding: 10px 20px; font-size: 0.92rem; font-weight: 600; cursor: pointer; font-family: inherit; border: none;
+  }
+  button.sim-btn { background: var(--series-1); color: #fff; }
+  button.sim-btn:hover { opacity: 0.9; }
+  button.sim-btn:disabled { opacity: 0.5; cursor: default; }
+  button.ghost-btn { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 14px; font-size: 0.84rem; }
+  button.ghost-btn:hover { color: var(--text-primary); }
+  button.ghost-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .draft-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .draft-head .names { display: flex; gap: 10px; }
+  .turn-badge { font-size: 0.86rem; padding: 6px 12px; border-radius: 999px; background: var(--page-plane); border: 1px solid var(--border); }
+  .turn-badge.a { color: var(--series-1); border-color: var(--series-1); }
+  .turn-badge.b { color: var(--series-2); border-color: var(--series-2); }
+  .draft-actions { margin-left: auto; display: flex; gap: 8px; }
+  .inline-msg { min-height: 1.2em; font-size: 0.82rem; color: var(--series-2); margin: 6px 0 0; }
+  .hint-text { font-size: 0.78rem; color: var(--text-muted); margin: 4px 0 14px; }
+
+  .roster-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  @media (max-width: 640px) { .roster-grid { grid-template-columns: 1fr; } }
+  .roster-panel { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--page-plane); min-height: 60px; }
+  .roster-panel h4 { margin: 2px 0 8px; font-size: 0.86rem; }
+  .roster-panel.a h4 { color: var(--series-1); }
+  .roster-panel.b h4 { color: var(--series-2); }
+  .roster-panel ol { margin: 0; padding-left: 20px; font-size: 0.82rem; color: var(--text-secondary); }
+  .roster-panel li { padding: 1px 0; }
+  .roster-panel .empty { color: var(--text-muted); font-size: 0.8rem; }
+
+  .pool-controls { display: flex; gap: 10px; margin-bottom: 10px; }
+  .pool-controls input { flex: 1; background: var(--page-plane); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 0.88rem; font-family: inherit; }
+  .pool-scroll { max-height: 380px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table.pool-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; white-space: nowrap; }
+  table.pool-table thead th { position: sticky; top: 0; background: var(--surface-1); text-align: right; padding: 7px 10px; color: var(--text-muted); border-bottom: 1px solid var(--grid); cursor: pointer; white-space: nowrap; }
+  table.pool-table thead th:nth-child(-n+3) { text-align: left; }
+  table.pool-table td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  table.pool-table td:nth-child(-n+3) { text-align: left; font-variant-numeric: normal; }
+  table.pool-table tr:hover td { background: var(--row-hover); }
+  table.pool-table button { background: var(--series-1); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; font-family: inherit; }
+  .stars { position: relative; display: inline-block; font-size: 0.92em; letter-spacing: 1px; line-height: 1; }
+  .stars-bg { color: var(--grid); }
+  .stars-fg { position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: #eda100; }
+
+  .scoreboard { display: none; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin: 0 0 20px; }
+  .score-row { display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap; }
+  .score-team { text-align: center; }
+  .score-team .t-name { font-size: 1.1rem; font-weight: 700; }
+  .score-team .t-score { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .score-team.a .t-score { color: var(--series-1); }
+  .score-team.b .t-score { color: var(--series-2); }
+  .score-sep { font-size: 1.1rem; color: var(--text-muted); text-align: center; }
+  .score-sep .ot-note { display: block; font-size: 0.72rem; margin-top: 3px; color: var(--text-muted); }
+  .period-table { margin: 18px auto 0; border-collapse: collapse; font-size: 0.84rem; }
+  .period-table th, .period-table td { padding: 6px 12px; text-align: center; font-variant-numeric: tabular-nums; }
+  .period-table th { color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--grid); }
+  .period-table td.team-label { text-align: left; font-weight: 600; }
+
+  .box-section { display: none; margin-top: 8px; }
+  .box-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .box-grid { grid-template-columns: 1fr; } }
+  .box-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow-x: auto; }
+  .box-card h3 { font-size: 0.95rem; margin: 4px 8px 10px; }
+  .box-card.a h3 { color: var(--series-1); }
+  .box-card.b h3 { color: var(--series-2); }
+  table.box-table { border-collapse: collapse; width: 100%; font-size: 0.78rem; white-space: nowrap; }
+  table.box-table th { text-align: right; padding: 6px 7px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--grid); }
+  table.box-table th:first-child { text-align: left; }
+  table.box-table td { text-align: right; padding: 6px 7px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  table.box-table td:first-child { text-align: left; font-variant-numeric: normal; font-weight: 600; }
+  table.box-table tr:last-child td { border-bottom: none; }
+
+  .log-section { display: none; margin-top: 16px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .log-section h3 { font-size: 0.9rem; margin: 4px 0 10px; color: var(--text-secondary); }
+  .log-box { max-height: 380px; overflow-y: auto; font-size: 0.82rem; line-height: 1.7; color: var(--text-secondary); }
+  .log-box .period-mark { margin: 10px 0 4px; font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; border-top: 1px solid var(--grid); padding-top: 8px; }
+  .log-box .period-mark:first-child { border-top: none; margin-top: 0; }
+  .log-box .sub { padding-left: 18px; color: var(--text-muted); font-size: 0.8rem; }
+  .log-box .team-a { color: var(--series-1); font-weight: 600; }
+  .log-box .team-b { color: var(--series-2); font-weight: 600; }
+  .log-box .miss { color: var(--text-muted); }
+  .log-box .turnover { color: var(--text-muted); font-style: italic; }
+
+  footer.page-foot { margin-top: 24px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <h1>시즌 시뮬레이션 엔진 — <span id="season-title">2025-26</span></h1>
+      <p>실제 시즌 선수 능력치로 가상 경기를 시뮬레이션합니다. 실제 팀끼리 붙여볼 수도, 직접 드래프트로 나만의 두 팀을 짜서 대결시킬 수도 있습니다. 슛 구역별 데이터가 집계되기 시작한 1996-97 시즌부터 선택할 수 있습니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__STATS_URL__">스탯 정리</a>
+        <a class="nav-link" href="__NDL_URL__">NDL Score</a>
+        <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
+        <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
+      </div>
+    </header>
+
+    <div class="setup" style="margin-top:20px;">
+      <div class="field">
+        <label for="season-select">시즌 선택</label>
+        <select id="season-select"></select>
+      </div>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-quick">실제 팀 대결</button>
+      <button class="mode-tab" id="tab-draft">드래프트 모드</button>
+    </div>
+
+    <div class="panel" id="panel-quick">
+      <div class="setup">
+        <div class="field"><label for="team-a">팀 A</label><select id="team-a"></select></div>
+        <div class="vs">VS</div>
+        <div class="field"><label for="team-b">팀 B</label><select id="team-b"></select></div>
+        <button class="sim-btn" id="sim-btn-quick">경기 시뮬레이션</button>
+      </div>
+      <div class="inline-msg" id="quick-msg"></div>
+    </div>
+
+    <div class="panel hidden" id="panel-draft">
+      <div class="draft-head">
+        <div class="names">
+          <input type="text" id="name-a" value="팀 1" maxlength="12" />
+          <input type="text" id="name-b" value="팀 2" maxlength="12" />
+        </div>
+        <div class="turn-badge a" id="turn-badge">팀 1의 차례 · 1라운드</div>
+        <div class="draft-actions">
+          <button class="ghost-btn" id="draft-reset">새 드래프트</button>
+          <button class="ghost-btn" id="draft-finish" disabled>드래프트 조기 종료</button>
+        </div>
+      </div>
+      <div class="inline-msg" id="draft-msg"></div>
+      <div class="hint-text" id="finish-hint">※ 두 팀 모두 5명 이상 뽑으면 "조기 종료"로 남은 라운드를 건너뛰고 바로 시뮬레이션할 수 있습니다.</div>
+
+      <div class="roster-grid">
+        <div class="roster-panel a" id="roster-a"><h4 id="roster-a-title">팀 1 (0/9)</h4><ol></ol></div>
+        <div class="roster-panel b" id="roster-b"><h4 id="roster-b-title">팀 2 (0/9)</h4><ol></ol></div>
+      </div>
+
+      <div id="draft-pool">
+        <div class="pool-controls"><input type="text" id="pool-search" placeholder="선수 검색…" /></div>
+        <div class="pool-scroll"><table class="pool-table" id="pool-table"></table></div>
+      </div>
+
+      <div style="text-align:center; margin-top:16px;">
+        <button class="sim-btn" id="sim-btn-draft" style="display:none;">드래프트 완료 — 경기 시뮬레이션</button>
+      </div>
+    </div>
+
+    <div class="scoreboard" id="scoreboard">
+      <div class="score-row">
+        <div class="score-team a"><div class="t-name" id="sb-name-a"></div><div class="t-score" id="sb-score-a"></div></div>
+        <div class="score-sep">FINAL<span class="ot-note" id="ot-note"></span></div>
+        <div class="score-team b"><div class="t-name" id="sb-name-b"></div><div class="t-score" id="sb-score-b"></div></div>
+      </div>
+      <table class="period-table" id="period-table"></table>
+    </div>
+
+    <div class="box-section" id="box-section">
+      <div class="box-grid">
+        <div class="box-card a"><h3 id="box-title-a"></h3><table class="box-table" id="box-table-a"></table></div>
+        <div class="box-card b"><h3 id="box-title-b"></h3><table class="box-table" id="box-table-b"></table></div>
+      </div>
+    </div>
+
+    <div class="log-section" id="log-section">
+      <h3>플레이 로그</h3>
+      <div class="log-box" id="log-box"></div>
+    </div>
+
+    <footer class="page-foot">
+      실제 시즌 스탯 기반 능력치로 만든 자체 시뮬레이션 엔진입니다 — 온코트 5인 구성(출전시간 × 체력 가중), 코트 구역 배치, 슛 선택·수비 매치업·리바운드·턴오버·체력 소모를 계산합니다. 실제 NBA 결과를 예측하는 도구가 아닌 개인 프로젝트용 시뮬레이션입니다.
+    </footer>
+  </div>
+</div>
+
+<script type="application/json" id="season-data">__SEASON_DATA__</script>
+<script>
+(function () {
+  const DB = JSON.parse(document.getElementById('season-data').textContent);
+  const SEASONS = DB.seasons;
+  let players = [];
+  let BASE_RATES = {};
+  const ZONE_KEYS = ['RA', 'Paint', 'Midrange', 'Corner3', 'Arc3'];
+  const SHOOT_ATTR = { RA: 'Finishing', Paint: 'Paint', Midrange: 'Midrange', Corner3: 'Corner3', Arc3: 'Arc3' };
+  const POSS_PER_QUARTER = 25;
+  const POSS_PER_OT = 10;
+  const DRAFT_ROSTER_SIZE = 9;
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  // ===================== 공용 유틸 =====================
+  function weightedPick(arr, weightFn) {
+    const total = arr.reduce((s, p) => s + Math.max(weightFn(p), 0.01), 0);
+    let r = Math.random() * total;
+    for (const p of arr) {
+      r -= Math.max(weightFn(p), 0.01);
+      if (r <= 0) return p;
+    }
+    return arr[arr.length - 1];
+  }
+
+  // 체력이 떨어져도 출전 가중치(=주로 누가 뛰는가)는 최대 30%만 깎는다.
+  // 시즌 평균 출전시간(MP)이 로테이션의 주된 결정 요인으로 남고, 체력은
+  // "지치면 살짝 덜 나온다" 정도의 미세 조정 역할만 하도록.
+  function freshness(fatigue) { return 1 - 0.3 * (fatigue / 100); }
+
+  function pickLineup(roster) {
+    const pool = roster.slice();
+    const chosen = [];
+    for (let i = 0; i < 5 && pool.length > 0; i++) {
+      const totalW = pool.reduce((s, p) => s + p.MP * freshness(p._fatigue), 0);
+      let r = Math.random() * totalW, idx = 0;
+      for (; idx < pool.length; idx++) { r -= pool[idx].MP * freshness(pool[idx]._fatigue); if (r <= 0) break; }
+      idx = Math.min(idx, pool.length - 1);
+      chosen.push(pool[idx]);
+      pool.splice(idx, 1);
+    }
+    return chosen;
+  }
+
+  function sampleZone(p) {
+    let r = Math.random();
+    for (const k of ZONE_KEYS) { r -= (p.Zone[k] || 0); if (r <= 0) return k; }
+    return 'Arc3';
+  }
+
+  function eff(p, key) { return clamp(p.Attr[key] - p._fatigue * 0.13, 5, 99); }
+
+  function shotProb(zone, shooterSkill, defenderSkill) {
+    const base = BASE_RATES[zone];
+    const SWING = 0.35;
+    const p = base + (shooterSkill - 50) / 100 * SWING - (defenderSkill - 50) / 100 * SWING * 0.8;
+    return clamp(p, 0.08, 0.92);
+  }
+
+  function ftProb(skill) { return clamp(0.55 + 0.4 * skill / 100, 0.35, 0.97); }
+
+  function newBoxLine() {
+    return { onCourt: 0, PTS: 0, REB: 0, OREB: 0, DREB: 0, AST: 0, STL: 0, BLK: 0, TOV: 0, FGM: 0, FGA: 0, TPM: 0, TPA: 0, FTM: 0, FTA: 0 };
+  }
+
+  function shotActionLabel(zone, playType) {
+    if (zone === 'RA') {
+      if (playType === 'drive') return Math.random() < 0.55 ? '돌파 덩크' : '돌파 레이업';
+      if (playType === 'catchShoot') return '컷인 레이업';
+      return Math.random() < 0.3 ? '포스트 덩크' : '골밑슛';
+    }
+    if (zone === 'Paint') return playType === 'drive' ? '드리블 돌파 플로터' : '페인트 훅슛';
+    if (zone === 'Midrange') {
+      if (playType === 'catchShoot') return '캐치앤슛 미드레인지';
+      return Math.random() < 0.3 ? '스텝백 점퍼' : '풀업 미드레인지';
+    }
+    const base = zone === 'Corner3' ? '코너 3점' : '3점';
+    if (playType === 'catchShoot') return `캐치앤슛 ${base}`;
+    return Math.random() < 0.3 ? `스텝백 ${base}` : `풀업 ${base}`;
+  }
+
+  const TOV_REASONS = ['트래블링', '오펜스 파울', '패스 미스 (아웃오브바운드)', '더블 드리블', '3초 바이얼레이션'];
+
+  // ===================== 포제션 시뮬레이션 =====================
+  function simulatePossession(offense, defense, box, teamKey, teamName, log) {
+    const offOn = pickLineup(offense);
+    const defOn = pickLineup(defense);
+    if (offOn.length < 5 || defOn.length < 5) return 0;
+    offOn.forEach(p => box[p.BbrefId].onCourt++);
+    offense.forEach(p => { p._fatigue = clamp(p._fatigue + (offOn.includes(p) ? fatigueGain(p) : -recoverAmt(p)), 0, 100); });
+    defense.forEach(p => { p._fatigue = clamp(p._fatigue + (defOn.includes(p) ? fatigueGain(p) : -recoverAmt(p)), 0, 100); });
+
+    const offZ = offOn.map(p => ({ p, zone: sampleZone(p) }));
+    const defZ = defOn.map(p => ({ p, zone: sampleZone(p) }));
+    const tag = 'team-' + teamKey.toLowerCase();
+
+    const handlerObj = weightedPick(offZ, o => o.p.USG || 10);
+    const handler = handlerObj.p;
+
+    const bestOnBallDef = defZ.reduce((b, d) => eff(d.p, 'OnBallDefense') > eff(b.p, 'OnBallDefense') ? d : b, defZ[0]);
+    const tovProb = clamp(0.12 + (50 - eff(handler, 'BallHandling')) / 500 - (eff(bestOnBallDef.p, 'OnBallDefense') - 50) / 500, 0.03, 0.35);
+    if (Math.random() < tovProb) {
+      box[handler.BbrefId].TOV++;
+      if (Math.random() < 0.6) {
+        box[bestOnBallDef.p.BbrefId].STL++;
+        log.push({ cls: tag + ' turnover', text: `${teamName} · 스틸! ${bestOnBallDef.p.Player} (턴오버: ${handler.Player})` });
+      } else {
+        const reason = TOV_REASONS[Math.floor(Math.random() * TOV_REASONS.length)];
+        log.push({ cls: tag + ' turnover', text: `${teamName} · 턴오버: ${handler.Player} (${reason})` });
+      }
+      return 0;
+    }
+
+    let shooter, shotZone, assistBy = null, playType = 'direct';
+    if (handlerObj.zone === 'RA' || handlerObj.zone === 'Paint') {
+      shooter = handler; shotZone = handlerObj.zone; playType = 'direct';
+      const interiorDef = defZ.filter(d => d.zone === 'RA' || d.zone === 'Paint');
+      const bestInt = interiorDef.length ? interiorDef.reduce((b, d) => eff(d.p, 'RimProtection') > eff(b.p, 'RimProtection') ? d : b, interiorDef[0]) : null;
+      if (bestInt && eff(bestInt.p, 'RimProtection') > 70 && Math.random() < 0.3) {
+        const others = offZ.filter(o => o !== handlerObj);
+        const receiver = weightedPick(others, o => (o.zone === 'Corner3' || o.zone === 'Arc3') ? 2 : 1);
+        shooter = receiver.p; shotZone = receiver.zone; assistBy = handler; playType = 'catchShoot';
+      }
+    } else {
+      const r = Math.random();
+      if (r < 0.55) {
+        shooter = handler; shotZone = handlerObj.zone; playType = 'direct';
+      } else if (r < 0.80) {
+        shotZone = Math.random() < 0.6 ? 'RA' : 'Paint';
+        const interiorDef = defZ.filter(d => d.zone === 'RA' || d.zone === 'Paint');
+        const bestInt = interiorDef.length ? interiorDef.reduce((b, d) => eff(d.p, 'RimProtection') > eff(b.p, 'RimProtection') ? d : b, interiorDef[0]) : null;
+        if (bestInt && eff(bestInt.p, 'RimProtection') > 65 && Math.random() < 0.4) {
+          const others = offZ.filter(o => o !== handlerObj);
+          const receiver = weightedPick(others, o => (o.zone === 'Corner3' || o.zone === 'Arc3') ? 2 : 1);
+          shooter = receiver.p; shotZone = receiver.zone; assistBy = handler; playType = 'catchShoot';
+        } else {
+          shooter = handler; playType = 'drive';
+        }
+      } else {
+        const others = offZ.filter(o => o !== handlerObj);
+        const receiver = weightedPick(others, () => 1);
+        shooter = receiver.p; shotZone = receiver.zone; assistBy = handler; playType = 'catchShoot';
+      }
+    }
+
+    let defSkill = 45;
+    if (shotZone === 'RA' || shotZone === 'Paint') {
+      const interiorDef = defZ.filter(d => d.zone === 'RA' || d.zone === 'Paint');
+      if (interiorDef.length) defSkill = Math.max(...interiorDef.map(d => eff(d.p, 'RimProtection')));
+    } else {
+      const matched = defZ.filter(d => d.zone === shotZone);
+      if (matched.length) {
+        defSkill = Math.max(...matched.map(d => eff(d.p, 'OnBallDefense')));
+      } else {
+        const perimDef = defZ.filter(d => d.zone === 'Midrange' || d.zone === 'Corner3' || d.zone === 'Arc3');
+        defSkill = perimDef.length ? perimDef.reduce((s, d) => s + eff(d.p, 'OnBallDefense'), 0) / perimDef.length * 0.6 : 30;
+      }
+    }
+
+    let blocker = null;
+    if (shotZone === 'RA' || shotZone === 'Paint') {
+      const interiorDef = defZ.filter(d => d.zone === 'RA' || d.zone === 'Paint');
+      if (interiorDef.length) {
+        const shotBlocker = interiorDef.reduce((b, d) => eff(d.p, 'RimProtection') > eff(b.p, 'RimProtection') ? d : b, interiorDef[0]);
+        const blockChance = clamp((eff(shotBlocker.p, 'RimProtection') - 50) / 250, 0, 0.18);
+        if (Math.random() < blockChance) blocker = shotBlocker.p;
+      }
+    }
+
+    const shooterSkill = eff(shooter, SHOOT_ATTR[shotZone]);
+    const prob = shotProb(shotZone, shooterSkill, defSkill);
+    const isThree = shotZone === 'Corner3' || shotZone === 'Arc3';
+    const actionLabel = shotActionLabel(shotZone, playType);
+    box[shooter.BbrefId].FGA++;
+    if (isThree) box[shooter.BbrefId].TPA++;
+
+    let points = 0;
+    if (blocker) {
+      box[blocker.BbrefId].BLK++;
+      log.push({ cls: tag + ' miss', text: `${teamName} · ${shooter.Player} ${actionLabel} → 블락! (${blocker.Player})` });
+      points = handleMiss();
+    } else if (Math.random() < prob) {
+      points = isThree ? 3 : 2;
+      box[shooter.BbrefId].FGM++;
+      if (isThree) box[shooter.BbrefId].TPM++;
+      box[shooter.BbrefId].PTS += points;
+      if (assistBy) box[assistBy.BbrefId].AST++;
+      const foulChance = (shotZone === 'RA' || shotZone === 'Paint') ? 0.10 : 0.04;
+      let andOne = '';
+      if (Math.random() < foulChance) {
+        box[shooter.BbrefId].FTA++;
+        if (Math.random() < ftProb(eff(shooter, 'FreeThrow'))) { box[shooter.BbrefId].FTM++; box[shooter.BbrefId].PTS++; points++; andOne = ' + 앤드원 성공'; }
+        else andOne = ' + 앤드원 실패';
+      }
+      log.push({ cls: tag + ' made', text: `${teamName} · ${shooter.Player} ${actionLabel} 성공${assistBy ? ` (AST: ${assistBy.Player})` : ''}${andOne}` });
+    } else {
+      const foulChance = (shotZone === 'RA' || shotZone === 'Paint') ? 0.12 : (shotZone === 'Midrange' ? 0.05 : 0.06);
+      if (Math.random() < foulChance) {
+        const ftCount = isThree ? 3 : 2;
+        box[shooter.BbrefId].FTA += ftCount;
+        let made = 0;
+        for (let i = 0; i < ftCount; i++) if (Math.random() < ftProb(eff(shooter, 'FreeThrow'))) made++;
+        box[shooter.BbrefId].FTM += made;
+        box[shooter.BbrefId].PTS += made;
+        points = made;
+        log.push({ cls: tag, text: `${teamName} · ${shooter.Player} 슛파울 (${actionLabel}), 자유투 ${made}/${ftCount}` });
+      } else {
+        log.push({ cls: tag + ' miss', text: `${teamName} · ${shooter.Player} ${actionLabel} 실패` });
+        points = handleMiss();
+      }
+    }
+    return points;
+
+    function handleMiss() {
+      const interiorOff = offZ.filter(o => o.zone === 'RA' || o.zone === 'Paint');
+      const interiorDef = defZ.filter(d => d.zone === 'RA' || d.zone === 'Paint');
+      const perimOff = offZ.filter(o => o.zone === 'Midrange' || o.zone === 'Corner3' || o.zone === 'Arc3');
+      const perimDef = defZ.filter(d => d.zone === 'Midrange' || d.zone === 'Corner3' || d.zone === 'Arc3');
+      const candidates = [];
+      interiorOff.forEach(o => candidates.push({ p: o.p, side: 'off', w: eff(o.p, 'OffRebound') }));
+      interiorDef.forEach(d => candidates.push({ p: d.p, side: 'def', w: eff(d.p, 'DefRebound') }));
+      perimOff.forEach(o => candidates.push({ p: o.p, side: 'off', w: eff(o.p, 'OffRebound') * 0.15 }));
+      perimDef.forEach(d => candidates.push({ p: d.p, side: 'def', w: eff(d.p, 'DefRebound') * 0.15 }));
+      if (!candidates.length) return 0;
+      const reb = weightedPick(candidates, c => c.w);
+      box[reb.p.BbrefId].REB++;
+      if (reb.side === 'off') box[reb.p.BbrefId].OREB++; else box[reb.p.BbrefId].DREB++;
+      log.push({ cls: 'sub', text: `${reb.side === 'off' ? '공격' : '수비'} 리바운드: ${reb.p.Player}` });
+      if (reb.side === 'off') {
+        box[reb.p.BbrefId].FGA++;
+        const pbProb = shotProb('RA', eff(reb.p, 'Finishing'), 50);
+        if (Math.random() < pbProb) {
+          box[reb.p.BbrefId].FGM++; box[reb.p.BbrefId].PTS += 2;
+          log.push({ cls: 'sub made', text: `풋백 덩크/레이업 성공: ${reb.p.Player}` });
+          return 2;
+        }
+        log.push({ cls: 'sub miss', text: `풋백 시도 실패: ${reb.p.Player}` });
+      }
+      return 0;
+    }
+  }
+
+  function fatigueGain(p) { return 2.4 - (p.Attr.Stamina - 50) / 50 * 1.3; }
+  function recoverAmt(p) { return 1.2 + (p.Attr.Stamina - 50) / 100; }
+
+  // ===================== 경기 전체 시뮬레이션(연장 포함) =====================
+  function simulateGame(rosterA, rosterB, nameA, nameB) {
+    const box = {};
+    [...rosterA, ...rosterB].forEach(p => { box[p.BbrefId] = newBoxLine(); p._fatigue = 0; });
+    const periods = []; // { label, A, B }
+    const log = [];
+    let totalPoss = 0;
+
+    function runPeriod(label, possCount) {
+      let a = 0, b = 0;
+      log.push({ cls: 'period-mark', text: label });
+      for (let i = 0; i < possCount; i++) {
+        a += simulatePossession(rosterA, rosterB, box, 'A', nameA, log);
+        b += simulatePossession(rosterB, rosterA, box, 'B', nameB, log);
+        totalPoss++;
+      }
+      periods.push({ label, A: a, B: b });
+    }
+
+    ['1Q', '2Q', '3Q', '4Q'].forEach(label => runPeriod(label, POSS_PER_QUARTER));
+    let totalA = periods.reduce((s, q) => s + q.A, 0);
+    let totalB = periods.reduce((s, q) => s + q.B, 0);
+
+    let otCount = 0;
+    while (totalA === totalB && otCount < 8) {
+      otCount++;
+      runPeriod(`OT${otCount}`, POSS_PER_OT);
+      totalA = periods.reduce((s, q) => s + q.A, 0);
+      totalB = periods.reduce((s, q) => s + q.B, 0);
+    }
+
+    const totalMinutes = 48 + otCount * 5;
+    [...rosterA, ...rosterB].forEach(p => {
+      const b = box[p.BbrefId];
+      b.MIN = totalPoss > 0 ? Math.round((b.onCourt / totalPoss) * totalMinutes * 10) / 10 : 0;
+      b.staminaLeft = Math.round(100 - p._fatigue);
+    });
+
+    return { rosterA, rosterB, box, periods, totalA, totalB, otCount, log };
+  }
+
+  // ===================== 렌더링 =====================
+  function renderBoxTable(el, roster, box) {
+    const rows = roster.slice().sort((a, b) => box[b.BbrefId].PTS - box[a.BbrefId].PTS);
+    el.innerHTML = '<thead><tr><th>선수</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TOV</th><th>FG</th><th>3P</th><th>FT</th><th>체력</th></tr></thead>' +
+      '<tbody>' + rows.map(p => {
+        const b = box[p.BbrefId];
+        return `<tr><td>${p.Player}</td><td>${b.MIN}</td><td>${b.PTS}</td><td>${b.REB}</td><td>${b.AST}</td><td>${b.STL}</td><td>${b.BLK}</td><td>${b.TOV}</td><td>${b.FGM}-${b.FGA}</td><td>${b.TPM}-${b.TPA}</td><td>${b.FTM}-${b.FTA}</td><td>${b.staminaLeft}%</td></tr>`;
+      }).join('') + '</tbody>';
+  }
+
+  function runAndRender(rosterA, rosterB, nameA, nameB) {
+    const result = simulateGame(rosterA, rosterB, nameA, nameB);
+
+    document.getElementById('sb-name-a').textContent = nameA;
+    document.getElementById('sb-name-b').textContent = nameB;
+    document.getElementById('sb-score-a').textContent = result.totalA;
+    document.getElementById('sb-score-b').textContent = result.totalB;
+    document.getElementById('ot-note').textContent = result.otCount > 0 ? `${result.otCount}차 연장 종료` : '';
+
+    const pt = document.getElementById('period-table');
+    pt.innerHTML = '<thead><tr><th></th>' + result.periods.map(q => `<th>${q.label}</th>`).join('') + '<th>Total</th></tr></thead>' +
+      '<tbody>' +
+      `<tr><td class="team-label">${nameA}</td>${result.periods.map(q => `<td>${q.A}</td>`).join('')}<td><strong>${result.totalA}</strong></td></tr>` +
+      `<tr><td class="team-label">${nameB}</td>${result.periods.map(q => `<td>${q.B}</td>`).join('')}<td><strong>${result.totalB}</strong></td></tr>` +
+      '</tbody>';
+
+    document.getElementById('box-title-a').textContent = `${nameA} 박스스코어`;
+    document.getElementById('box-title-b').textContent = `${nameB} 박스스코어`;
+    renderBoxTable(document.getElementById('box-table-a'), result.rosterA, result.box);
+    renderBoxTable(document.getElementById('box-table-b'), result.rosterB, result.box);
+
+    const logBox = document.getElementById('log-box');
+    logBox.replaceChildren();
+    result.log.forEach(entry => {
+      const div = document.createElement('div');
+      div.className = entry.cls;
+      div.textContent = entry.text;
+      logBox.appendChild(div);
+    });
+    logBox.scrollTop = 0;
+
+    document.getElementById('scoreboard').style.display = 'block';
+    document.getElementById('box-section').style.display = 'block';
+    document.getElementById('log-section').style.display = 'block';
+    document.getElementById('scoreboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ===================== 퀵 모드(실제 팀) =====================
+  const teamASel = document.getElementById('team-a');
+  const teamBSel = document.getElementById('team-b');
+
+  function populateTeams() {
+    const teams = Array.from(new Set(players.map(p => p.Team))).sort();
+    teamASel.replaceChildren();
+    teamBSel.replaceChildren();
+    teams.forEach(t => { teamASel.appendChild(new Option(t, t)); teamBSel.appendChild(new Option(t, t)); });
+    teamASel.value = teams[0];
+    teamBSel.value = teams[1] || teams[0];
+  }
+
+  function getRotation(team) {
+    return players.filter(p => p.Team === team).sort((a, b) => b.MP - a.MP).slice(0, DRAFT_ROSTER_SIZE);
+  }
+
+  document.getElementById('sim-btn-quick').addEventListener('click', () => {
+    const msg = document.getElementById('quick-msg');
+    const a = teamASel.value, b = teamBSel.value;
+    if (a === b) { msg.textContent = '서로 다른 두 팀을 선택해주세요.'; return; }
+    msg.textContent = '';
+    const btn = document.getElementById('sim-btn-quick');
+    btn.disabled = true; btn.textContent = '시뮬레이션 중...';
+    setTimeout(() => {
+      runAndRender(getRotation(a), getRotation(b), a, b);
+      btn.disabled = false; btn.textContent = '경기 시뮬레이션';
+    }, 30);
+  });
+
+  // ===================== 드래프트 모드 =====================
+  let draft = null;
+  function newDraft() {
+    draft = { picks: 0, teamA: [], teamB: [], drafted: new Set(), sortKey: 'NDL', sortDir: -1, forceEnd: false };
+  }
+  newDraft();
+
+  function draftTurnTeam() {
+    // 스네이크 드래프트: A,B,B,A,A,B,B,A ...
+    const round = Math.floor(draft.picks / 2);
+    const evenRound = round % 2 === 0;
+    const firstInRound = draft.picks % 2 === 0;
+    if (evenRound) return firstInRound ? 'A' : 'B';
+    return firstInRound ? 'B' : 'A';
+  }
+
+  function renderDraftHead() {
+    const nameA = document.getElementById('name-a').value.trim() || '팀 1';
+    const nameB = document.getElementById('name-b').value.trim() || '팀 2';
+    const round = Math.floor(draft.picks / 2) + 1;
+    const done = draft.forceEnd || (draft.teamA.length >= DRAFT_ROSTER_SIZE && draft.teamB.length >= DRAFT_ROSTER_SIZE);
+    const badge = document.getElementById('turn-badge');
+    if (done) {
+      badge.textContent = '드래프트 완료!';
+      badge.className = 'turn-badge';
+    } else {
+      const turn = draftTurnTeam();
+      badge.textContent = `${turn === 'A' ? nameA : nameB}의 차례 · ${round}라운드`;
+      badge.className = 'turn-badge ' + turn.toLowerCase();
+    }
+    document.getElementById('roster-a-title').textContent = `${nameA} (${draft.teamA.length}/${DRAFT_ROSTER_SIZE})`;
+    document.getElementById('roster-b-title').textContent = `${nameB} (${draft.teamB.length}/${DRAFT_ROSTER_SIZE})`;
+    document.getElementById('roster-a').querySelector('ol').innerHTML = draft.teamA.map(p => `<li>${p.Player} <span style="color:var(--text-muted)">(${p.Pos})</span></li>`).join('') || '<li class="empty" style="list-style:none;margin-left:-20px;">아직 없음</li>';
+    document.getElementById('roster-b').querySelector('ol').innerHTML = draft.teamB.map(p => `<li>${p.Player} <span style="color:var(--text-muted)">(${p.Pos})</span></li>`).join('') || '<li class="empty" style="list-style:none;margin-left:-20px;">아직 없음</li>';
+
+    const canFinishEarly = draft.teamA.length >= 5 && draft.teamB.length >= 5 && !done;
+    document.getElementById('draft-finish').disabled = !canFinishEarly;
+
+    const simBtn = document.getElementById('sim-btn-draft');
+    simBtn.style.display = (done || (draft.teamA.length >= 5 && draft.teamB.length >= 5)) ? 'inline-block' : 'none';
+    document.getElementById('draft-pool').style.display = done ? 'none' : 'block';
+  }
+
+  // 드래프트 화면은 실제 시즌 기록이 아니라 시뮬레이션에 쓰이는 '게임 능력치'를 보여준다.
+  // 시즌을 바꾸면 선수 배열이 통째로 교체되므로 로드할 때마다 다시 계산한다.
+  function derivePoolAttrs() {
+    players.forEach(p => {
+      p.Attr.ThreePt = Math.round((p.Attr.Corner3 + p.Attr.Arc3) / 2);
+      p.Attr.Rebound = Math.round((p.Attr.OffRebound + p.Attr.DefRebound) / 2);
+    });
+  }
+
+  // 0~99(또는 0~100) 능력치를 별점 0.5~5.0(0.5 단위)으로 환산해 보여준다.
+  function toStars(v, max) {
+    const raw = (v / max) * 5;
+    return clamp(Math.round(raw * 2) / 2, 0.5, 5);
+  }
+  function starCell(v, max) {
+    const stars = toStars(v, max);
+    const pct = (stars / 5) * 100;
+    return `<span class="stars" title="${stars.toFixed(1)} / 5.0"><span class="stars-bg">★★★★★</span><span class="stars-fg" style="width:${pct}%">★★★★★</span></span>`;
+  }
+
+  const POOL_COLS = [
+    { key: 'Player', label: '선수', get: p => p.Player, fmt: v => v },
+    { key: 'Team', label: '팀', get: p => p.Team, fmt: v => v },
+    { key: 'Pos', label: '포지션', get: p => p.Pos, fmt: v => v },
+    { key: 'NDL', label: '종합', get: p => p.NDL, fmt: v => starCell(v, 100) },
+    { key: 'Finishing', label: '골밑', get: p => p.Attr.Finishing, fmt: v => starCell(v, 99) },
+    { key: 'Midrange', label: '미드', get: p => p.Attr.Midrange, fmt: v => starCell(v, 99) },
+    { key: 'ThreePt', label: '3점', get: p => p.Attr.ThreePt, fmt: v => starCell(v, 99) },
+    { key: 'Playmaking', label: '플레이메이킹', get: p => p.Attr.Playmaking, fmt: v => starCell(v, 99) },
+    { key: 'OnBallDefense', label: '수비', get: p => p.Attr.OnBallDefense, fmt: v => starCell(v, 99) },
+    { key: 'Rebound', label: '리바운드', get: p => p.Attr.Rebound, fmt: v => starCell(v, 99) },
+    { key: 'Athleticism', label: '운동능력', get: p => p.Attr.Athleticism, fmt: v => starCell(v, 99) },
+    { key: 'Stamina', label: '체력', get: p => p.Attr.Stamina, fmt: v => starCell(v, 99) },
+  ];
+
+  function renderPool() {
+    const q = document.getElementById('pool-search').value.trim().toLowerCase();
+    const col = POOL_COLS.find(c => c.key === draft.sortKey);
+    const rows = players.filter(p => !draft.drafted.has(p.BbrefId) && (!q || p.Player.toLowerCase().includes(q) || p.Team.toLowerCase().includes(q)))
+      .sort((x, y) => draft.sortDir * ((col.get(x) ?? 0) > (col.get(y) ?? 0) ? 1 : (col.get(x) ?? 0) < (col.get(y) ?? 0) ? -1 : 0));
+    const table = document.getElementById('pool-table');
+    table.innerHTML = '<thead><tr>' + POOL_COLS.map(c => `<th data-key="${c.key}">${c.label}${draft.sortKey === c.key ? (draft.sortDir === -1 ? ' ▼' : ' ▲') : ''}</th>`).join('') + '<th></th></tr></thead>' +
+      '<tbody>' + rows.slice(0, 150).map(p => '<tr>' + POOL_COLS.map(c => `<td>${c.fmt(c.get(p))}</td>`).join('') + `<td><button data-id="${p.BbrefId}">드래프트</button></td></tr>`).join('') + '</tbody>';
+    table.querySelectorAll('th[data-key]').forEach(th => th.addEventListener('click', () => {
+      const k = th.getAttribute('data-key');
+      if (draft.sortKey === k) draft.sortDir *= -1; else { draft.sortKey = k; draft.sortDir = -1; }
+      renderPool();
+    }));
+    table.querySelectorAll('button[data-id]').forEach(btn => btn.addEventListener('click', () => draftPlayer(btn.getAttribute('data-id'))));
+  }
+
+  function draftPlayer(bbrefId) {
+    if (draft.forceEnd) return;
+    if (draft.teamA.length >= DRAFT_ROSTER_SIZE && draft.teamB.length >= DRAFT_ROSTER_SIZE) return;
+    const p = players.find(pl => pl.BbrefId === bbrefId);
+    if (!p || draft.drafted.has(bbrefId)) return;
+    const turn = draftTurnTeam();
+    if (turn === 'A') { if (draft.teamA.length >= DRAFT_ROSTER_SIZE) return; draft.teamA.push(p); }
+    else { if (draft.teamB.length >= DRAFT_ROSTER_SIZE) return; draft.teamB.push(p); }
+    draft.drafted.add(bbrefId);
+    draft.picks++;
+    renderDraftHead();
+    renderPool();
+  }
+
+  function hideResults() {
+    document.getElementById('scoreboard').style.display = 'none';
+    document.getElementById('box-section').style.display = 'none';
+    document.getElementById('log-section').style.display = 'none';
+  }
+
+  document.getElementById('pool-search').addEventListener('input', renderPool);
+  document.getElementById('name-a').addEventListener('input', renderDraftHead);
+  document.getElementById('name-b').addEventListener('input', renderDraftHead);
+
+  // 샌드박스 iframe에서는 브라우저 native confirm()/alert()가 막혀 있어 동작하지 않을 수 있으므로
+  // 페이지 내부 UI(두 번 클릭 확인, 인라인 경고 텍스트)로 대체한다.
+  let resetArmed = false;
+  let resetTimer = null;
+  document.getElementById('draft-reset').addEventListener('click', function () {
+    const btn = this;
+    if (draft.picks === 0) {
+      newDraft(); renderDraftHead(); renderPool(); hideResults();
+      return;
+    }
+    if (!resetArmed) {
+      resetArmed = true;
+      btn.textContent = '정말 초기화? (다시 클릭)';
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { resetArmed = false; btn.textContent = '새 드래프트'; }, 3000);
+    } else {
+      clearTimeout(resetTimer);
+      resetArmed = false;
+      btn.textContent = '새 드래프트';
+      newDraft(); renderDraftHead(); renderPool(); hideResults();
+    }
+  });
+
+  document.getElementById('draft-finish').addEventListener('click', () => {
+    const msg = document.getElementById('draft-msg');
+    if (draft.teamA.length < 5 || draft.teamB.length < 5) {
+      msg.textContent = '두 팀 모두 최소 5명을 뽑아야 조기 종료할 수 있습니다.';
+      return;
+    }
+    msg.textContent = '';
+    draft.forceEnd = true;
+    renderDraftHead();
+    document.getElementById('sim-btn-draft').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  document.getElementById('sim-btn-draft').addEventListener('click', () => {
+    const msg = document.getElementById('draft-msg');
+    const nameA = document.getElementById('name-a').value.trim() || '팀 1';
+    const nameB = document.getElementById('name-b').value.trim() || '팀 2';
+    if (draft.teamA.length < 5 || draft.teamB.length < 5) { msg.textContent = '각 팀 최소 5명은 드래프트해야 합니다.'; return; }
+    msg.textContent = '';
+    const btn = document.getElementById('sim-btn-draft');
+    btn.disabled = true; btn.textContent = '시뮬레이션 중...';
+    setTimeout(() => {
+      runAndRender(draft.teamA, draft.teamB, nameA, nameB);
+      btn.disabled = false; btn.textContent = '드래프트 완료 — 경기 시뮬레이션';
+    }, 30);
+  });
+
+  // ===================== 시즌 전환 =====================
+  const seasonSelect = document.getElementById('season-select');
+
+  function loadSeason(season) {
+    const bundle = DB.game[season];
+    players = bundle.players;
+    BASE_RATES = bundle.baseRates;
+    document.getElementById('season-title').textContent = season;
+    derivePoolAttrs();
+    populateTeams();
+    // 시즌이 바뀌면 이전 시즌 선수로 짠 로스터와 경기 결과는 모두 무효
+    newDraft();
+    document.getElementById('draft-msg').textContent = '';
+    document.getElementById('quick-msg').textContent = '';
+    hideResults();
+    renderDraftHead();
+    renderPool();
+  }
+
+  SEASONS.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    seasonSelect.appendChild(o);
+  });
+  seasonSelect.value = SEASONS[SEASONS.length - 1];
+  seasonSelect.addEventListener('change', () => loadSeason(seasonSelect.value));
+
+  loadSeason(seasonSelect.value);
+
+  // ===================== 모드 탭 전환 =====================
+  document.getElementById('tab-quick').addEventListener('click', () => {
+    document.getElementById('tab-quick').classList.add('active');
+    document.getElementById('tab-draft').classList.remove('active');
+    document.getElementById('panel-quick').classList.remove('hidden');
+    document.getElementById('panel-draft').classList.add('hidden');
+  });
+  document.getElementById('tab-draft').addEventListener('click', () => {
+    document.getElementById('tab-draft').classList.add('active');
+    document.getElementById('tab-quick').classList.remove('active');
+    document.getElementById('panel-draft').classList.remove('hidden');
+    document.getElementById('panel-quick').classList.add('hidden');
+  });
+})();
+</script>

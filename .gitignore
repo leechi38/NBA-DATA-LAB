@@ -1,0 +1,32 @@
+# === 재생성 가능한 대용량 데이터 ===
+# 원본 HTML 캐시(254MB). 스크래핑 결과이며 재배포 대상이 아니다.
+data/.cache/
+# 시즌별 원본 가공 결과(31MB). fetch_all_seasons.py가 캐시에서 다시 만든다.
+data/seasons/
+data/seasons_backup/
+# 웹 임베드용 중간 산출물(26MB). 이미 site/ 안의 HTML에 포함돼 있어 중복이다.
+data/all_seasons_*.json
+data/careers.json
+data/players_*.json
+# 외부에서 내려받는 공개 데이터셋. fetch_team_margins.py가 자동으로 받는다.
+data/nbaallelo.csv
+data/team_totals_2010_2024.csv
+# 선수 얼굴 이미지 원본. 배포본은 site/img/ 에 들어간다.
+data/headshots/
+
+# === 아티팩트 배포본 ===
+# claude.ai 아티팩트용 빌드. 웹 배포본(site/)과 내용이 겹친다.
+pages/
+
+# === 작업 메모 ===
+.claude/
+# 파일명이 '#'로 시작하면 주석으로 먹히므로 이스케이프가 필요하다
+\#\ 사이트\ 개요.md
+기획안.md
+
+# === 파이썬 ===
+__pycache__/
+*.pyc
+.venv/
+venv/
+_*.py

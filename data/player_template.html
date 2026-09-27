@@ -1,149 +1,100 @@
-<title>NBA DATA LAB — 선수 커리어</title>
+﻿<title>NBA DATA LAB — 선수 커리어</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  .viz-root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --page-plane:     #f9f9f7;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid:           #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6;
-    --series-2:       #eb6834;
-    --series-3:       #1baf7a;
-    --series-4:       #eda100;
-    --row-hover:      #f0f4fb;
-    --chip-bg:        #f0efe9;
-    --chip-bg-active: #e4edfb;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --page-plane:     #0d0d0d;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid:           #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --series-2:       #d95926;
-      --series-3:       #199e70;
-      --series-4:       #c98500;
-      --row-hover:      #16233a;
-      --chip-bg:        #232320;
-      --chip-bg-active: #16233a;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
-    color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --page-plane:     #0d0d0d;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --grid:           #2c2c2a;
-    --baseline:       #383835;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --series-2:       #d95926;
-    --series-3:       #199e70;
-    --series-4:       #c98500;
-    --row-hover:      #16233a;
-    --chip-bg:        #232320;
-    --chip-bg-active: #16233a;
-  }
+__BASE_CSS__
 
-  * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root {
-    background: var(--page-plane); color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    min-height: 100vh; padding: 32px 16px 64px;
-  }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
-  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
-  .nav-link:hover { border-bottom-color: var(--series-1); }
-
-  .search-wrap { position: relative; margin: 24px 0 8px; max-width: 420px; }
+  /* ── 선수 검색 ────────────────────────────────────────── */
+  .search-wrap { position: relative; margin: 22px 0 8px; max-width: 420px; }
   .search-wrap input {
-    width: 100%; background: var(--surface-1); color: var(--text-primary);
-    border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
+    width: 100%; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 4px; padding: 10px 14px;
     font-size: 0.95rem; font-family: inherit;
   }
   .search-results {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    max-height: 320px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    position: absolute; top: calc(100% - 1px); left: 0; right: 0; z-index: 5;
+    background: var(--surface); border: 1px solid var(--rule);
+    max-height: 320px; overflow-y: auto;
   }
   .search-results[hidden] { display: none; }
-  .search-item { padding: 9px 14px; cursor: pointer; font-size: 0.88rem; display: flex; justify-content: space-between; gap: 8px; }
-  .search-item:hover, .search-item.active { background: var(--row-hover); }
-  .search-item .years { color: var(--text-muted); font-size: 0.8rem; white-space: nowrap; }
-
-  .player-card {
-    margin-top: 20px; background: var(--surface-1); border: 1px solid var(--border);
-    border-radius: 14px; padding: 20px 22px; display: none;
+  .search-item {
+    padding: 9px 14px; cursor: pointer; font-size: 0.88rem;
+    display: flex; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid var(--rule);
   }
+  .search-item:last-child { border-bottom: none; }
+  .search-item:hover, .search-item.active { background: var(--accent-soft); color: var(--accent); }
+  .search-item .years {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.78rem; white-space: nowrap;
+  }
+
+  /* ── 선수 헤더: 카드가 아니라 굵은 괘선 아래의 제호 ───── */
+  .player-card { margin-top: 26px; border-top: 3px solid var(--rule-strong); padding-top: 14px; display: none; }
   .player-card.is-visible { display: block; }
-  .player-card h2 { margin: 0 0 4px; font-size: 1.3rem; }
-  .player-card .meta { color: var(--text-secondary); font-size: 0.88rem; }
-
-  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
-  .chip {
-    font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; cursor: pointer;
-    background: var(--chip-bg); color: var(--text-secondary); border: 1px solid transparent;
-    user-select: none;
+  .player-card h2 {
+    font-family: Oswald, system-ui, sans-serif;
+    margin: 0 0 3px; font-size: 1.7rem; font-weight: 600; letter-spacing: 0.01em;
   }
-  .chip.active { background: var(--chip-bg-active); color: var(--text-primary); border-color: var(--dot); font-weight: 600; }
-  .chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dot); margin-right: 6px; }
+  .player-card .meta {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.8rem; letter-spacing: 0.07em; text-transform: uppercase;
+  }
 
-  .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 16px; }
-  .chart-tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px 10px; }
-  .chart-tile h3 { margin: 0 0 2px; font-size: 0.86rem; color: var(--text-secondary); font-weight: 600; }
-  .chart-tile .latest { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 2px; }
+  /* ── 스탯 선택 칩 ─────────────────────────────────────── */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 4px; }
+  .chip {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.78rem; letter-spacing: 0.05em; padding: 5px 11px; cursor: pointer;
+    background: transparent; color: var(--ink-2);
+    border: 1px solid var(--rule); border-radius: 2px; user-select: none;
+  }
+  .chip:hover { border-color: var(--ink-3); }
+  .chip.active { background: var(--accent-soft); color: var(--ink); border-color: var(--dot); font-weight: 500; }
+  .chip .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--dot); margin-right: 6px; }
+
+  /* ── 커리어 추이 차트 ─────────────────────────────────── */
+  .chart-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1px; background: var(--rule);
+    margin-top: 16px; border-block: 1px solid var(--rule);
+  }
+  .chart-tile { background: var(--paper); padding: 13px 14px 8px; }
+  .chart-tile h3 {
+    font-family: Oswald, system-ui, sans-serif;
+    margin: 0 0 1px; font-size: 0.74rem; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500;
+  }
+  .chart-tile .latest {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-bottom: 2px;
+  }
   .chart-tile svg { width: 100%; height: auto; display: block; overflow: visible; }
   .chart-tile .pt { cursor: pointer; }
 
   .tooltip {
-    position: fixed; pointer-events: none; background: var(--text-primary); color: var(--page-plane);
-    font-size: 0.76rem; padding: 5px 9px; border-radius: 6px; white-space: nowrap; z-index: 20;
+    position: fixed; pointer-events: none; background: var(--ink); color: var(--paper);
+    font-size: 0.75rem; padding: 5px 9px; border-radius: 2px; white-space: nowrap; z-index: 20;
     transform: translate(-50%, -130%); opacity: 0; transition: opacity 0.08s ease;
+    font-variant-numeric: tabular-nums;
   }
   .tooltip.is-visible { opacity: 1; }
 
-  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); margin-top: 22px; }
-  table { border-collapse: collapse; width: 100%; font-size: 0.84rem; white-space: nowrap; }
-  thead th {
-    position: sticky; top: 0; background: var(--surface-1);
-    text-align: right; padding: 9px 11px; font-weight: 600; color: var(--text-secondary);
-    border-bottom: 1px solid var(--grid);
-  }
+  /* ── 시즌별 기록표 ────────────────────────────────────── */
+  .table-scroll { margin-top: 24px; }
+  table { white-space: nowrap; font-size: 0.84rem; }
   thead th:first-child, thead th:nth-child(2) { text-align: left; }
-  tbody td { padding: 7px 11px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
   tbody td:first-child, tbody td:nth-child(2) { text-align: left; font-variant-numeric: normal; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: var(--row-hover); }
+  tbody td:first-child { font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.02em; }
 
-  .empty-state { padding: 48px 16px; text-align: center; color: var(--text-muted); font-size: 0.92rem; }
-  footer.page-foot { margin-top: 28px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
-
-  @media (max-width: 480px) {
-    .chart-grid { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 480px) { .chart-grid { grid-template-columns: 1fr; } }
 </style>
 
 <div class="viz-root">
   <div class="wrap">
     <header class="page-head">
-      <h1>NBA DATA LAB — 선수 커리어</h1>
-      <p>선수를 검색하면 basketball-reference.com 데이터를 기반으로 정리한 정규시즌 커리어 전체(1949-50 시즌~)의 스탯 추이를 확인할 수 있습니다.</p>
+      <div class="eyebrow">1949–50 → 2025–26 · 4,913명</div>
+      <h1>선수 커리어</h1>
+      <p>선수를 검색하면 정규시즌 커리어 전체의 스탯 추이를 볼 수 있습니다.</p>
       <div class="nav-links">
         <a class="nav-link" href="__HOME_URL__">← 홈</a>
         <a class="nav-link" href="__STATS_URL__">시즌 스탯</a>

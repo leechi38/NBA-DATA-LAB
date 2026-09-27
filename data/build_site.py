@@ -11,7 +11,7 @@ import json
 import shutil
 from pathlib import Path
 
-from site_config import WEB_URLS
+from site_config import WEB_URLS, apply_base_css
 
 BASE = Path(__file__).parent
 SITE = BASE.parent / "site"
@@ -21,7 +21,7 @@ HEADSHOT_DIR = BASE / "headshots"
 def apply_urls(html: str) -> str:
     for placeholder, url in WEB_URLS.items():
         html = html.replace(placeholder, url)
-    return html
+    return apply_base_css(html)
 
 
 def write(name: str, html: str):
@@ -39,8 +39,9 @@ def main():
     sizes = {}
 
     # --- 홈 ---
-    sizes["index.html"] = write("index.html",
-                                 apply_urls((BASE / "home_template.html").read_text(encoding="utf-8")))
+    home = (BASE / "home_template.html").read_text(encoding="utf-8")
+    home = home.replace("__HOME_DATA__", (BASE / "home_data.json").read_text(encoding="utf-8"))
+    sizes["index.html"] = write("index.html", apply_urls(home))
 
     # --- 시즌 선택형 데이터 페이지 3종 ---
     for name, template, data_file, placeholder in [

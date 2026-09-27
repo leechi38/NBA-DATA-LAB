@@ -1,180 +1,209 @@
-<title>NBA DATA LAB — 시즌 시뮬레이션</title>
+﻿<title>NBA DATA LAB — 시즌 시뮬레이션</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  .viz-root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --page-plane:     #f9f9f7;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid:           #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6; /* Team A */
-    --series-2:       #eb6834; /* Team B */
-    --good:           #0ca30c;
-    --row-hover:      #f0f4fb;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --page-plane:     #0d0d0d;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid:           #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --series-2:       #d95926;
-      --good:           #0ca30c;
-      --row-hover:      #16233a;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
-    color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --page-plane:     #0d0d0d;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --grid:           #2c2c2a;
-    --baseline:       #383835;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --series-2:       #d95926;
-    --good:           #0ca30c;
-    --row-hover:      #16233a;
-  }
+__BASE_CSS__
 
-  * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root {
-    background: var(--page-plane); color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    min-height: 100vh; padding: 32px 16px 64px;
-  }
-  .wrap { max-width: 1120px; margin: 0 auto; }
-  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
-  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
-  .nav-link:hover { border-bottom-color: var(--series-1); }
-
-  .mode-tabs { display: flex; gap: 8px; margin: 22px 0 0; }
+  /* ── 모드 탭 ──────────────────────────────────────────── */
+  .mode-tabs { display: flex; gap: 0; margin: 22px 0 0; border-bottom: 2px solid var(--rule-strong); }
   .mode-tab {
-    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary);
-    border-radius: 8px 8px 0 0; padding: 9px 18px; font-size: 0.88rem; font-family: inherit; cursor: pointer;
-    border-bottom: none; position: relative; top: 1px;
+    background: transparent; border: none; color: var(--ink-3);
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.86rem; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 9px 16px; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
   }
-  .mode-tab.active { color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--surface-1); background: var(--surface-1); }
-  .mode-tab:not(.active) { background: transparent; border-color: transparent; }
+  .mode-tab:hover { color: var(--ink-2); }
+  .mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
 
-  .panel {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 0 10px 10px 10px;
-    padding: 20px; margin: 0 0 20px;
-  }
+  .panel { padding: 18px 0 20px; border-bottom: 1px solid var(--rule); margin-bottom: 20px; }
   .panel.hidden { display: none; }
 
+  /* ── 팀 선택 ──────────────────────────────────────────── */
   .setup { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
-  .setup .field { display: flex; flex-direction: column; gap: 6px; }
-  .setup label { font-size: 0.78rem; color: var(--text-muted); }
-  .setup select, .setup input[type=text] {
-    background: var(--page-plane); color: var(--text-primary); border: 1px solid var(--border);
-    border-radius: 8px; padding: 9px 12px; font-size: 0.92rem; font-family: inherit; min-width: 160px;
+  .setup .field { display: flex; flex-direction: column; gap: 5px; }
+  .setup label {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
   }
-  .vs { font-weight: 700; color: var(--text-muted); padding-bottom: 9px; }
+  .setup select, .setup input[type=text] { min-width: 160px; }
+  .vs {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.86rem; letter-spacing: 0.1em; color: var(--ink-3); padding-bottom: 9px;
+  }
   button.sim-btn, button.ghost-btn {
-    border-radius: 8px; padding: 10px 20px; font-size: 0.92rem; font-weight: 600; cursor: pointer; font-family: inherit; border: none;
+    font-family: Oswald, system-ui, sans-serif;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    border-radius: 3px; cursor: pointer; border: none;
   }
-  button.sim-btn { background: var(--series-1); color: #fff; }
-  button.sim-btn:hover { opacity: 0.9; }
-  button.sim-btn:disabled { opacity: 0.5; cursor: default; }
-  button.ghost-btn { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 14px; font-size: 0.84rem; }
-  button.ghost-btn:hover { color: var(--text-primary); }
-  button.ghost-btn:disabled { opacity: 0.4; cursor: default; }
+  button.sim-btn { background: var(--accent); color: #fff; padding: 10px 20px; font-size: 0.86rem; font-weight: 500; }
+  button.sim-btn:hover { filter: brightness(1.08); }
+  button.sim-btn:disabled { opacity: 0.45; cursor: default; filter: none; }
+  button.ghost-btn {
+    background: transparent; border: 1px solid var(--rule); color: var(--ink-2);
+    padding: 7px 13px; font-size: 0.76rem;
+  }
+  button.ghost-btn:hover { color: var(--accent); border-color: var(--accent); }
+  button.ghost-btn:disabled { opacity: 0.4; cursor: default; color: var(--ink-2); border-color: var(--rule); }
 
-  .draft-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .draft-head .names { display: flex; gap: 10px; }
-  .turn-badge { font-size: 0.86rem; padding: 6px 12px; border-radius: 999px; background: var(--page-plane); border: 1px solid var(--border); }
-  .turn-badge.a { color: var(--series-1); border-color: var(--series-1); }
-  .turn-badge.b { color: var(--series-2); border-color: var(--series-2); }
+  /* ── 드래프트 ─────────────────────────────────────────── */
+  .draft-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .draft-head .names { display: flex; gap: 8px; }
+  .draft-head .names input {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
+    border-radius: 4px; padding: 7px 11px; font-size: 0.88rem; font-family: inherit; min-width: 0; width: 8rem;
+  }
+  .turn-badge {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.78rem; letter-spacing: 0.05em; padding: 5px 11px;
+    border: 1px solid var(--rule); border-radius: 2px;
+  }
+  .turn-badge.a { color: var(--cat-1); border-color: var(--cat-1); }
+  .turn-badge.b { color: var(--cat-2); border-color: var(--cat-2); }
   .draft-actions { margin-left: auto; display: flex; gap: 8px; }
-  .inline-msg { min-height: 1.2em; font-size: 0.82rem; color: var(--series-2); margin: 6px 0 0; }
-  .hint-text { font-size: 0.78rem; color: var(--text-muted); margin: 4px 0 14px; }
+  .inline-msg { min-height: 1.2em; font-size: 0.82rem; color: var(--neg); margin: 6px 0 0; }
+  .hint-text { font-size: 0.78rem; color: var(--ink-3); margin: 4px 0 14px; }
 
-  .roster-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .roster-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule);
+                 border-block: 1px solid var(--rule); margin-bottom: 16px; }
   @media (max-width: 640px) { .roster-grid { grid-template-columns: 1fr; } }
-  .roster-panel { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--page-plane); min-height: 60px; }
-  .roster-panel h4 { margin: 2px 0 8px; font-size: 0.86rem; }
-  .roster-panel.a h4 { color: var(--series-1); }
-  .roster-panel.b h4 { color: var(--series-2); }
-  .roster-panel ol { margin: 0; padding-left: 20px; font-size: 0.82rem; color: var(--text-secondary); }
+  .roster-panel { background: var(--paper); padding: 10px 12px; min-height: 60px; }
+  .roster-panel h4 {
+    font-family: Oswald, system-ui, sans-serif;
+    margin: 2px 0 7px; font-size: 0.82rem; letter-spacing: 0.05em; font-weight: 500;
+  }
+  .roster-panel.a h4 { color: var(--cat-1); }
+  .roster-panel.b h4 { color: var(--cat-2); }
+  .roster-panel ol { margin: 0; padding-left: 20px; font-size: 0.82rem; color: var(--ink-2); }
   .roster-panel li { padding: 1px 0; }
-  .roster-panel .empty { color: var(--text-muted); font-size: 0.8rem; }
+  .roster-panel .empty { color: var(--ink-3); font-size: 0.8rem; }
 
   .pool-controls { display: flex; gap: 10px; margin-bottom: 10px; }
-  .pool-controls input { flex: 1; background: var(--page-plane); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 0.88rem; font-family: inherit; }
-  .pool-scroll { max-height: 380px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .pool-controls input {
+    flex: 1; background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
+    border-radius: 4px; padding: 8px 12px; font-size: 0.88rem; font-family: inherit;
+  }
+  .pool-scroll { max-height: 380px; overflow: auto; border-top: 2px solid var(--rule-strong); }
   table.pool-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; white-space: nowrap; }
-  table.pool-table thead th { position: sticky; top: 0; background: var(--surface-1); text-align: right; padding: 7px 10px; color: var(--text-muted); border-bottom: 1px solid var(--grid); cursor: pointer; white-space: nowrap; }
+  table.pool-table thead th {
+    position: sticky; top: 0; z-index: 1; background: var(--paper);
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500;
+    text-align: right; padding: 8px 10px; color: var(--ink-3);
+    border-bottom: 1px solid var(--rule); cursor: pointer;
+  }
+  table.pool-table thead th:hover { color: var(--accent); }
   table.pool-table thead th:nth-child(-n+3) { text-align: left; }
-  table.pool-table td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  table.pool-table td {
+    text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
   table.pool-table td:nth-child(-n+3) { text-align: left; font-variant-numeric: normal; }
-  table.pool-table tr:hover td { background: var(--row-hover); }
-  table.pool-table button { background: var(--series-1); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; font-family: inherit; }
+  table.pool-table tr:hover td { background: var(--surface-sunk); }
+  table.pool-table button {
+    background: var(--accent); color: #fff; border: none; border-radius: 2px;
+    padding: 3px 10px; font-size: 0.74rem; cursor: pointer;
+    font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.04em;
+  }
   .stars { position: relative; display: inline-block; font-size: 0.92em; letter-spacing: 1px; line-height: 1; }
-  .stars-bg { color: var(--grid); }
-  .stars-fg { position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: #eda100; }
+  .stars-bg { color: var(--rule); }
+  .stars-fg { position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: var(--cat-4); }
 
-  .scoreboard { display: none; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin: 0 0 20px; }
-  .score-row { display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap; }
+  /* ── 스코어보드: 이 페이지의 주인공 ───────────────────── */
+  .scoreboard {
+    display: none; padding: 22px 0 20px;
+    border-top: 3px solid var(--rule-strong); border-bottom: 1px solid var(--rule);
+    margin: 0 0 20px;
+  }
+  .score-row { display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; }
   .score-team { text-align: center; }
-  .score-team .t-name { font-size: 1.1rem; font-weight: 700; }
-  .score-team .t-score { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 4px; }
-  .score-team.a .t-score { color: var(--series-1); }
-  .score-team.b .t-score { color: var(--series-2); }
-  .score-sep { font-size: 1.1rem; color: var(--text-muted); text-align: center; }
-  .score-sep .ot-note { display: block; font-size: 0.72rem; margin-top: 3px; color: var(--text-muted); }
-  .period-table { margin: 18px auto 0; border-collapse: collapse; font-size: 0.84rem; }
-  .period-table th, .period-table td { padding: 6px 12px; text-align: center; font-variant-numeric: tabular-nums; }
-  .period-table th { color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--grid); }
-  .period-table td.team-label { text-align: left; font-weight: 600; }
+  .score-team .t-name {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.95rem; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .score-team .t-score {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 3.2rem; font-weight: 600; line-height: 1;
+    font-variant-numeric: tabular-nums; margin-top: 5px;
+  }
+  .score-team.a .t-score { color: var(--cat-1); }
+  .score-team.b .t-score { color: var(--cat-2); }
+  .score-sep {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.9rem; letter-spacing: 0.1em; color: var(--ink-3); text-align: center;
+  }
+  .score-sep .ot-note { display: block; font-size: 0.7rem; margin-top: 3px; letter-spacing: 0.05em; }
+  .period-table { margin: 20px auto 0; border-collapse: collapse; font-size: 0.84rem; }
+  .period-table th, .period-table td {
+    padding: 6px 13px; text-align: center; font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid var(--rule);
+  }
+  .period-table th {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500;
+  }
+  .period-table td.team-label {
+    text-align: left; font-weight: 600;
+    font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.04em;
+  }
+  .period-table tr:last-child td { border-bottom: none; }
 
+  /* ── 박스스코어 ───────────────────────────────────────── */
   .box-section { display: none; margin-top: 8px; }
-  .box-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .box-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 760px) { .box-grid { grid-template-columns: 1fr; } }
-  .box-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow-x: auto; }
-  .box-card h3 { font-size: 0.95rem; margin: 4px 8px 10px; }
-  .box-card.a h3 { color: var(--series-1); }
-  .box-card.b h3 { color: var(--series-2); }
+  .box-card { overflow-x: auto; }
+  .box-card h3 {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.88rem; letter-spacing: 0.06em; text-transform: uppercase;
+    margin: 4px 0 8px; font-weight: 500;
+  }
+  .box-card.a h3 { color: var(--cat-1); }
+  .box-card.b h3 { color: var(--cat-2); }
   table.box-table { border-collapse: collapse; width: 100%; font-size: 0.78rem; white-space: nowrap; }
-  table.box-table th { text-align: right; padding: 6px 7px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--grid); }
+  table.box-table th {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500;
+    text-align: right; padding: 6px 7px; color: var(--ink-3);
+    border-bottom: 1px solid var(--ink-3);
+  }
   table.box-table th:first-child { text-align: left; }
-  table.box-table td { text-align: right; padding: 6px 7px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  table.box-table td {
+    text-align: right; padding: 6px 7px; border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
   table.box-table td:first-child { text-align: left; font-variant-numeric: normal; font-weight: 600; }
   table.box-table tr:last-child td { border-bottom: none; }
 
-  .log-section { display: none; margin-top: 16px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
-  .log-section h3 { font-size: 0.9rem; margin: 4px 0 10px; color: var(--text-secondary); }
-  .log-box { max-height: 380px; overflow-y: auto; font-size: 0.82rem; line-height: 1.7; color: var(--text-secondary); }
-  .log-box .period-mark { margin: 10px 0 4px; font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; border-top: 1px solid var(--grid); padding-top: 8px; }
+  /* ── 플레이바이플레이 ─────────────────────────────────── */
+  .log-section { display: none; margin-top: 20px; border-top: 1px solid var(--rule); padding-top: 14px; }
+  .log-section h3 {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin: 0 0 10px; color: var(--ink-3); font-weight: 500;
+  }
+  .log-box { max-height: 380px; overflow-y: auto; font-size: 0.82rem; line-height: 1.7; color: var(--ink-2); }
+  .log-box .period-mark {
+    font-family: Oswald, system-ui, sans-serif;
+    margin: 10px 0 4px; font-size: 0.72rem; font-weight: 500; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    border-top: 1px solid var(--rule); padding-top: 8px;
+  }
   .log-box .period-mark:first-child { border-top: none; margin-top: 0; }
-  .log-box .sub { padding-left: 18px; color: var(--text-muted); font-size: 0.8rem; }
-  .log-box .team-a { color: var(--series-1); font-weight: 600; }
-  .log-box .team-b { color: var(--series-2); font-weight: 600; }
-  .log-box .miss { color: var(--text-muted); }
-  .log-box .turnover { color: var(--text-muted); font-style: italic; }
-
-  footer.page-foot { margin-top: 24px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+  .log-box .sub { padding-left: 18px; color: var(--ink-3); font-size: 0.8rem; }
+  .log-box .team-a { color: var(--cat-1); font-weight: 600; }
+  .log-box .team-b { color: var(--cat-2); font-weight: 600; }
+  .log-box .miss { color: var(--ink-3); }
+  .log-box .turnover { color: var(--ink-3); font-style: italic; }
 </style>
 
 <div class="viz-root">
   <div class="wrap">
     <header class="page-head">
-      <h1>시즌 시뮬레이션 엔진 — <span id="season-title">2025-26</span></h1>
-      <p>실제 시즌 선수 능력치로 가상 경기를 시뮬레이션합니다. 실제 팀끼리 붙여볼 수도, 직접 드래프트로 나만의 두 팀을 짜서 대결시킬 수도 있습니다. 슛 구역별 데이터가 집계되기 시작한 1996-97 시즌부터 선택할 수 있습니다.</p>
+      <div class="eyebrow"><span id="season-title">2025-26</span> 시즌 기준</div>
+      <h1>시즌 시뮬레이션</h1>
+      <p>실제 기록으로 만든 능력치로 가상 경기를 돌립니다. 실제 팀끼리 붙일 수도, 직접 드래프트로 두 팀을 짜서 대결시킬 수도 있습니다. 슛 구역 데이터가 집계되기 시작한 1996-97 시즌부터 고를 수 있습니다.</p>
       <div class="nav-links">
         <a class="nav-link" href="__HOME_URL__">← 홈</a>
         <a class="nav-link" href="__STATS_URL__">스탯 정리</a>

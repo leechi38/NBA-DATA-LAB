@@ -1,0 +1,274 @@
+<title>NDL Score — NBA DATA LAB 선수 평가</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --seq-100:        #cde2fb;
+    --seq-400:        #3987e5;
+    --div-pos:        #2a78d6;
+    --div-neg:        #e34948;
+    --div-mid:        #f0efec;
+    --row-hover:       #f0f4fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --seq-100:        #184f95;
+      --seq-400:        #3987e5;
+      --div-pos:        #3987e5;
+      --div-neg:        #e66767;
+      --div-mid:        #383835;
+      --row-hover:      #16233a;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --seq-100:        #184f95;
+    --seq-400:        #3987e5;
+    --div-pos:        #3987e5;
+    --div-neg:        #e66767;
+    --div-mid:        #383835;
+    --row-hover:      #16233a;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
+  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
+  .nav-link:hover { border-bottom-color: var(--series-1); }
+
+  .methodology {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; margin: 22px 0; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.7;
+  }
+  .methodology h2 { font-size: 0.95rem; color: var(--text-primary); margin: 0 0 10px; }
+  .methodology .formula { font-family: ui-monospace, monospace; font-size: 0.82rem; background: var(--page-plane); padding: 10px 12px; border-radius: 6px; margin: 8px 0; overflow-x: auto; }
+  .methodology .caveat { margin-top: 10px; font-size: 0.82rem; color: var(--text-muted); }
+  .comp-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+  .comp-legend span.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 12px; align-items: center; }
+  .controls input, .controls select {
+    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; font-family: inherit;
+  }
+  .controls input { flex: 1 1 220px; min-width: 160px; }
+  .controls .count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface-1); z-index: 1;
+    text-align: right; padding: 10px 12px; font-weight: 600; color: var(--text-secondary);
+    border-bottom: 1px solid var(--grid); white-space: nowrap;
+  }
+  thead th:nth-child(1), thead th:nth-child(2), thead th:nth-child(3), thead th:nth-child(4) { text-align: left; }
+  tbody td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; vertical-align: middle; }
+  tbody td:nth-child(1), tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align: left; font-variant-numeric: normal; }
+  tbody tr.player-row { cursor: pointer; }
+  tbody tr.player-row:hover { background: var(--row-hover); }
+  tbody tr:last-child td { border-bottom: none; }
+  .rank { color: var(--text-muted); width: 28px; }
+  .player-name { font-weight: 600; }
+  .score-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .score-num { font-weight: 700; min-width: 34px; text-align: right; }
+  .meter-track { width: 90px; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+  .meter-fill { height: 100%; background: var(--seq-400); border-radius: 3px; }
+
+  .detail-row td { padding: 0; border-bottom: 1px solid var(--grid); }
+  .detail-row.hidden { display: none; }
+  .detail-inner { padding: 14px 20px 18px; background: var(--page-plane); }
+  .div-bar-row { display: grid; grid-template-columns: 110px 1fr 52px; align-items: center; gap: 10px; margin: 6px 0; font-size: 0.82rem; }
+  .div-bar-row .comp-label { color: var(--text-secondary); text-align: right; }
+  .div-track { position: relative; height: 14px; background: var(--div-mid); border-radius: 3px; }
+  .div-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--baseline); }
+  .div-fill { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .div-fill.pos { background: var(--div-pos); left: 50%; }
+  .div-fill.neg { background: var(--div-neg); right: 50%; }
+  .div-val { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .weight-note { margin: 10px 0 0; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+  .low-sample-badge { font-size: 0.68rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: 4px; white-space: nowrap; }
+
+  footer.page-foot { margin-top: 28px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+  .empty-state { padding: 32px; text-align: center; color: var(--text-muted); }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <h1>NDL Score — NBA DATA LAB 선수 평가</h1>
+      <p>2025-26 정규시즌 기록을 바탕으로 만든 자체 종합 평가 지표입니다. 5개 하위 지표를 표준화(z-score)해 가중합한 뒤 0~100 점수로 환산했습니다. 평균적인 선수가 50점입니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="https://claude.ai/code/artifact/18a37a89-066f-4b51-a5b2-61b174abbe14">← 홈</a>
+        <a class="nav-link" href="https://claude.ai/code/artifact/3d9d87f0-73d5-4715-8b0c-59fa08b33163">스탯 정리</a>
+        <a class="nav-link" href="https://claude.ai/code/artifact/8d314bec-60df-47a7-a230-ec902e645663">선수 포지셔닝</a>
+        <a class="nav-link" href="https://claude.ai/code/artifact/7e46c135-6b01-4457-8702-1d11158912d0">시즌 시뮬레이션</a>
+      </div>
+    </header>
+
+    <section class="methodology">
+      <h2>NDL Score 계산 방법</h2>
+      <div class="formula">NDL Score = 50 + 10 × ( z(가중합) × 출전시간 가중치 )</div>
+      <div class="comp-legend">
+        <span><span class="dot" style="background:var(--div-pos)"></span>생산성 25% = z(PTS+TRB+AST+STL+BLK−TOV), 리그 전체 기준</span>
+        <span>효율성 20% = z(TS%)+z(eFG%), <strong>포지션(가드/포워드/센터) 내</strong> 기준</span>
+        <span>플레이메이킹 15% = z(AST%)−z(TOV%), 포지션 내 기준</span>
+        <span>수비기여 20% = z(STL%)+z(BLK%)+z(DRB%), 포지션 내 기준</span>
+        <span>승리기여 20% = z(WS)+z(VORP), 리그 전체 기준</span>
+      </div>
+      <p class="caveat">
+        <strong>포지션 보정</strong>: 빅맨은 골밑슛 비중이 높아 TS%/eFG%가, 가드는 볼 소유 특성상 AST%가 구조적으로 유·불리해지기 때문에 효율성·플레이메이킹·수비기여는 같은 포지션군(가드/포워드/센터) 안에서만 상대평가합니다. 생산성·승리기여는 포지션과 무관하게 리그 전체 기준입니다.<br/>
+        <strong>출전시간 가중치</strong>: 하드 컷오프 없이, 총 출전시간(경기당 분×경기수)이 2,000분(약 82경기×24.4분 풀타임 기준)에 못 미치는 만큼 점수를 선형으로 평균(50점) 쪽으로 당깁니다. 출전시간이 늘수록 가중치가 1.0에 가까워져 계산된 점수가 그대로 반영되고, 적을수록 0에 가까워져 표본이 부족한 반짝 활약이 상위권에 오르는 것을 막습니다.<br/>
+        지표는 검증되지 않은 시범(trial) 버전이며, 가중치와 구성 스탯은 향후 조정될 수 있습니다.
+      </p>
+    </section>
+
+    <section class="controls">
+      <input type="text" id="search" placeholder="선수 또는 팀 검색…" />
+      <select id="pos-filter">
+        <option value="">전체 포지션</option>
+      </select>
+      <span class="count" id="count-label"></span>
+    </section>
+
+    <div class="table-scroll">
+      <table id="ndl-table">
+        <thead>
+          <tr>
+            <th>#</th><th>선수</th><th>팀</th><th>포지션</th><th>NDL Score</th><th>PTS</th><th>TRB</th><th>AST</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com (2025-26 정규시즌) · NDL Score는 NBA DATA LAB이 자체 설계한 실험적 지표입니다 · 행을 클릭하면 하위 지표 구성을 볼 수 있습니다.
+    </footer>
+  </div>
+</div>
+
+<script type="application/json" id="player-data">__PLAYER_DATA__</script>
+<script>
+(function () {
+  const players = JSON.parse(document.getElementById('player-data').textContent);
+  const components = [
+    { key: 'NDL_Production', label: '생산성' },
+    { key: 'NDL_Efficiency', label: '효율성' },
+    { key: 'NDL_Playmaking', label: '플레이메이킹' },
+    { key: 'NDL_Defense', label: '수비기여' },
+    { key: 'NDL_WinImpact', label: '승리기여' },
+  ];
+  const Z_DOMAIN = 3; // ±3 표준편차를 바 끝까지로 매핑
+
+  const posSet = Array.from(new Set(players.map(p => p.Pos).filter(Boolean))).sort();
+  const posFilter = document.getElementById('pos-filter');
+  posSet.forEach(pos => {
+    const opt = document.createElement('option');
+    opt.value = pos; opt.textContent = pos;
+    posFilter.appendChild(opt);
+  });
+
+  function divBar(value) {
+    const clamped = Math.max(-Z_DOMAIN, Math.min(Z_DOMAIN, value));
+    const pct = (Math.abs(clamped) / Z_DOMAIN) * 50;
+    const cls = value >= 0 ? 'pos' : 'neg';
+    return `<div class="div-track"><div class="div-zero"></div><div class="div-fill ${cls}" style="width:${pct}%"></div></div>`;
+  }
+
+  function renderDetail(p) {
+    const totalMP = Math.round(p.MP * p.G);
+    return `<div class="detail-inner">
+      ${components.map(c => `
+        <div class="div-bar-row">
+          <div class="comp-label">${c.label}</div>
+          ${divBar(p[c.key])}
+          <div class="div-val">${p[c.key] > 0 ? '+' : ''}${p[c.key].toFixed(2)}</div>
+        </div>`).join('')}
+      <p class="weight-note">출전시간 신뢰도 가중치 <strong>${(p.NDL_Weight * 100).toFixed(0)}%</strong> — 총 ${totalMP}분(경기당 ${p.MP.toFixed(1)}분 × ${p.G}경기) 기준. 100%에 못 미치는 만큼 위 점수를 평균(50점) 쪽으로 당겼습니다.</p>
+    </div>`;
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const pos = posFilter.value;
+    return players.filter(p => {
+      if (pos && p.Pos !== pos) return false;
+      if (q && !(p.Player.toLowerCase().includes(q) || (p.Team || '').toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    const rows = getFiltered().slice().sort((a, b) => b.NDL_Score - a.NDL_Score);
+    const tbody = document.getElementById('tbody');
+    document.getElementById('count-label').textContent = `평가 대상 ${rows.length}명`;
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">조건에 맞는 선수가 없습니다.</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map((p, i) => {
+      const pct = Math.max(0, Math.min(100, p.NDL_Score));
+      return `<tr class="player-row" data-idx="${i}">
+        <td class="rank">${i + 1}</td>
+        <td class="player-name">${p.Player}</td>
+        <td>${p.Team}</td>
+        <td>${p.Pos ?? ''}</td>
+        <td><div class="score-cell"><div class="meter-track"><div class="meter-fill" style="width:${pct}%"></div></div><div class="score-num">${p.NDL_Score.toFixed(1)}</div>${p.NDL_Weight < 0.6 ? '<span class="low-sample-badge" title="출전시간 표본 부족">표본↓</span>' : ''}</div></td>
+        <td>${p.PTS.toFixed(1)}</td>
+        <td>${p.TRB.toFixed(1)}</td>
+        <td>${p.AST.toFixed(1)}</td>
+      </tr>
+      <tr class="detail-row hidden" data-idx="${i}"><td colspan="8">${renderDetail(p)}</td></tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('tr.player-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const idx = row.getAttribute('data-idx');
+        const detail = tbody.querySelector(`tr.detail-row[data-idx="${idx}"]`);
+        detail.classList.toggle('hidden');
+      });
+    });
+  }
+
+  document.getElementById('search').addEventListener('input', render);
+  posFilter.addEventListener('change', render);
+  render();
+})();
+</script>

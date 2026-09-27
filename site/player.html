@@ -280,7 +280,11 @@ footer.page-foot {
   }
   .chart-tile .latest {
     font-family: Oswald, system-ui, sans-serif;
-    font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-bottom: 2px;
+    font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15;
+  }
+  .chart-tile .career-note {
+    font-size: 0.68rem; color: var(--ink-3); margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
   }
   .chart-tile svg { width: 100%; height: auto; display: block; overflow: visible; }
   .chart-tile .pt { cursor: pointer; }
@@ -354,17 +358,21 @@ footer.page-foot {
   const STAT_KEYS = DB.statKeys; // [G, MP, PTS, TRB, AST, STL, BLK, FG%, 3P%, TS%, PER, WS, BPM, NDL_Score]
   const PLAYERS = DB.players;    // bbrefId -> {name, seasons:[[year, team, ...STAT_KEYS], ...]}
 
+  // agg — 통산 값을 어떻게 합칠지. 스탯 종류마다 옳은 방식이 다르다.
+  //   game   경기당 기록. 경기 수로 가중평균해야 5경기 시즌이 82경기 시즌과 같은 무게를 갖지 않는다.
+  //   minute 분당 비율 지표(PER·BPM·TS%). 총 출전시간으로 가중평균한다.
+  //   sum    시즌 누적값(WS). 평균이 아니라 합계가 통산 기록이다.
   const STAT_META = {
-    'PTS':       { label: '득점 (PTS)',        color: 'var(--series-1)', fmt: v => v.toFixed(1) },
-    'TRB':       { label: '리바운드 (TRB)',     color: 'var(--series-2)', fmt: v => v.toFixed(1) },
-    'AST':       { label: '어시스트 (AST)',     color: 'var(--series-3)', fmt: v => v.toFixed(1) },
-    'PER':       { label: '효율 (PER)',        color: 'var(--series-4)', fmt: v => v.toFixed(1) },
-    'STL':       { label: '스틸 (STL)',        color: 'var(--series-1)', fmt: v => v.toFixed(1) },
-    'BLK':       { label: '블록 (BLK)',        color: 'var(--series-2)', fmt: v => v.toFixed(1) },
-    'TS%':       { label: '진 슛 성공률 (TS%)', color: 'var(--series-3)', fmt: v => (v * 100).toFixed(1) + '%' },
-    'WS':        { label: '승리 기여 (WS)',     color: 'var(--series-4)', fmt: v => v.toFixed(1) },
-    'BPM':       { label: '박스+/- (BPM)',      color: 'var(--series-1)', fmt: v => (v > 0 ? '+' : '') + v.toFixed(1) },
-    'NDL_Score': { label: 'NDL Score',         color: 'var(--series-2)', fmt: v => v.toFixed(1) },
+    'PTS':       { label: '득점 (PTS)',        color: 'var(--series-1)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'TRB':       { label: '리바운드 (TRB)',     color: 'var(--series-2)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'AST':       { label: '어시스트 (AST)',     color: 'var(--series-3)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'PER':       { label: '효율 (PER)',        color: 'var(--series-4)', agg: 'minute', fmt: v => v.toFixed(1) },
+    'STL':       { label: '스틸 (STL)',        color: 'var(--series-1)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'BLK':       { label: '블록 (BLK)',        color: 'var(--series-2)', agg: 'game',   fmt: v => v.toFixed(1) },
+    'TS%':       { label: '진 슛 성공률 (TS%)', color: 'var(--series-3)', agg: 'minute', fmt: v => (v * 100).toFixed(1) + '%' },
+    'WS':        { label: '승리 기여 (WS)',     color: 'var(--series-4)', agg: 'sum',    fmt: v => v.toFixed(1) },
+    'BPM':       { label: '박스+/- (BPM)',      color: 'var(--series-1)', agg: 'minute', fmt: v => (v > 0 ? '+' : '') + v.toFixed(1) },
+    'NDL_Score': { label: 'NDL Score',         color: 'var(--series-2)', agg: 'minute', fmt: v => v.toFixed(1) },
   };
   const DEFAULT_STATS = ['PTS', 'TRB', 'AST', 'PER'];
   let activeStats = DEFAULT_STATS.slice();
@@ -480,18 +488,47 @@ footer.page-foot {
       </svg>`;
   }
 
+  // 통산 값. 마지막 시즌 하나보다 커리어 전체를 대표하는 숫자가 낫다.
+  function careerValue(key, seasons) {
+    const meta = STAT_META[key];
+    const vi = 2 + idx(key), gi = 2 + idx('G'), mi = 2 + idx('MP');
+    let total = 0, weight = 0, used = 0;
+
+    for (const r of seasons) {
+      const v = r[vi];
+      if (v == null) continue;
+      used++;
+
+      if (meta.agg === 'sum') { total += v; continue; }
+
+      const g = r[gi];
+      if (g == null || !g) continue;
+      // 출전시간 가중이 원칙이지만 옛 시즌은 MP가 비어 있어, 그럴 땐 경기 수로 물러선다.
+      const mp = r[mi];
+      const w = (meta.agg === 'minute' && mp != null && mp > 0) ? g * mp : g;
+      total += v * w;
+      weight += w;
+    }
+
+    if (!used) return null;
+    if (meta.agg === 'sum') return { value: total, seasons: used, kind: '통산 합계' };
+    if (!weight) return null;
+    return { value: total / weight, seasons: used, kind: '통산 평균' };
+  }
+
   function renderCharts(id) {
     const grid = document.getElementById('chart-grid');
     const p = PLAYERS[id];
     grid.innerHTML = activeStats.map(key => {
       const meta = STAT_META[key];
       const seasons = p.seasons;
-      const i = idx(key);
-      const lastRow = [...seasons].reverse().find(r => r[2 + i] != null);
-      const latest = lastRow ? meta.fmt(lastRow[2 + i]) : '–';
+      const career = careerValue(key, seasons);
+      const figure = career ? meta.fmt(career.value) : '–';
+      const note = career ? `${career.kind} · ${career.seasons}시즌` : '기록 없음';
       return `<div class="chart-tile">
                 <h3>${meta.label}</h3>
-                <div class="latest" style="color:${meta.color}">${latest}</div>
+                <div class="latest" style="color:${meta.color}">${figure}</div>
+                <div class="career-note">${note}</div>
                 ${buildChartSVG(key, seasons)}
               </div>`;
     }).join('');

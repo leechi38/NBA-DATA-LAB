@@ -1,4 +1,4 @@
-"""scatter_template.html + all_seasons_scatter.json + headshots → pages/scatter.html
+﻿"""scatter_template.html + all_seasons_scatter.json + headshots → pages/scatter.html
 
 헤드샷은 최근 시즌 선수 위주로만 보유하고 있다(BbrefId 기준 매칭). 옛날 시즌
 선수는 이미지 없이 기록만 표시되며, 템플릿이 fallback 아바타로 대체한다.
@@ -6,6 +6,8 @@
 import base64
 import json
 from pathlib import Path
+
+from site_config import apply_base_css
 
 BASE = Path(__file__).parent
 OUT_DIR = BASE.parent / "pages"
@@ -35,6 +37,7 @@ out = template.replace(
 )
 
 out_path = OUT_DIR / "scatter.html"
+out = apply_base_css(out)
 out_path.write_text(out, encoding="utf-8")
 print(f"{out_path} 생성 완료 ({len(data['seasons'])}개 시즌, "
       f"이미지 {len(images)}개, {len(out)/1024/1024:.2f} MB)")

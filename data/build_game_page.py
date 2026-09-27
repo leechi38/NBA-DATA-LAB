@@ -1,4 +1,4 @@
-"""game_template.html + all_seasons_game.json → pages/game.html
+﻿"""game_template.html + all_seasons_game.json → pages/game.html
 
 슛 구역별 데이터가 있는 시즌(1996-97~)만 포함한다. 엔진이 구역별 슛 선택으로
 포제션을 계산하므로, 구역 분포가 균등값으로 채워지는 그 이전 시즌은 시뮬레이션
@@ -6,6 +6,8 @@
 """
 import json
 from pathlib import Path
+
+from site_config import apply_base_css
 
 BASE = Path(__file__).parent
 OUT_DIR = BASE.parent / "pages"
@@ -19,6 +21,7 @@ out = template.replace(
 )
 
 out_path = OUT_DIR / "game.html"
+out = apply_base_css(out)
 out_path.write_text(out, encoding="utf-8")
 seasons = data["seasons"]
 print(f"{out_path} 생성 완료 ({len(seasons)}개 시즌 {seasons[0]}~{seasons[-1]}, "

@@ -1,5 +1,7 @@
-"""ndl_multiseason_template.html + all_seasons_ndl.json 을 합쳐 발행용 ndl-score.html을 만든다."""
+﻿"""ndl_multiseason_template.html + all_seasons_ndl.json 을 합쳐 발행용 ndl-score.html을 만든다."""
 from pathlib import Path
+
+from site_config import apply_base_css
 
 BASE = Path(__file__).parent
 OUT_DIR = BASE.parent / "pages"
@@ -21,5 +23,6 @@ for placeholder, url in URLS.items():
     out = out.replace(placeholder, url)
 
 out_path = OUT_DIR / "ndl-score.html"
+out = apply_base_css(out)
 out_path.write_text(out, encoding="utf-8")
 print(f"{out_path} 생성 완료 ({len(out)/1024/1024:.2f} MB)")

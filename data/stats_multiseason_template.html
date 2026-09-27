@@ -1,114 +1,52 @@
-<title>NBA DATA LAB — 시즌별 스탯</title>
+﻿<title>NBA DATA LAB — 시즌별 스탯</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  .viz-root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --page-plane:     #f9f9f7;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid:           #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6;
-    --seq-100:        #cde2fb;
-    --seq-400:        #3987e5;
-    --row-hover:      #f0f4fb;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --page-plane:     #0d0d0d;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid:           #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --seq-100:        #184f95;
-      --seq-400:        #3987e5;
-      --row-hover:      #16233a;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
-    color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --page-plane:     #0d0d0d;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --grid:           #2c2c2a;
-    --baseline:       #383835;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --seq-100:        #184f95;
-    --seq-400:        #3987e5;
-    --row-hover:      #16233a;
-  }
+__BASE_CSS__
 
-  * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root {
-    background: var(--page-plane);
-    color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    min-height: 100vh;
-    padding: 32px 16px 64px;
+  /* ── 리더 타일 ─────────────────────────────────────────── */
+  .tiles {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px; background: var(--rule);
+    border-block: 1px solid var(--rule);
+    margin: 22px 0;
   }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
-  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
-  .nav-link:hover { border-bottom-color: var(--series-1); }
+  .tile { background: var(--paper); padding: 13px 14px 15px; }
+  .tile .tile-label {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.68rem; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .tile .tile-value {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 1.7rem; font-weight: 600; line-height: 1.1;
+    margin-top: 3px; font-variant-numeric: tabular-nums;
+  }
+  .tile .tile-sub { font-size: 0.82rem; color: var(--ink-2); margin-top: 1px; }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0; }
-  .tile {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 16px;
-  }
-  .tile .tile-label { font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-  .tile .tile-value { font-size: 1.6rem; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .tile .tile-sub { font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px; }
-
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 12px; align-items: center; }
-  .controls input, .controls select {
-    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; font-family: inherit;
-  }
-  .controls input { flex: 1 1 220px; min-width: 160px; }
-  .controls select#season-select { font-weight: 600; }
-  .controls .count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
-
-  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
-  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; white-space: nowrap; }
-  thead th {
-    position: sticky; top: 0; background: var(--surface-1); z-index: 1;
-    text-align: right; padding: 10px 12px; font-weight: 600; color: var(--text-secondary);
-    border-bottom: 1px solid var(--grid); cursor: pointer; user-select: none;
-  }
+  /* ── 표: 정렬 가능한 헤더 + 좌측 3열은 텍스트 ───────────── */
+  table { white-space: nowrap; }
+  thead th { cursor: pointer; user-select: none; }
+  thead th:hover { color: var(--accent); }
   thead th:first-child, thead th:nth-child(2), thead th:nth-child(3) { text-align: left; }
-  thead th .arrow { font-size: 0.7rem; color: var(--series-1); margin-left: 3px; }
-  tbody td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
-  tbody td:first-child, tbody td:nth-child(2), tbody td:nth-child(3) { text-align: left; font-variant-numeric: normal; }
-  tbody tr:hover { background: var(--row-hover); }
-  tbody tr:last-child td { border-bottom: none; }
+  thead th .arrow { font-size: 0.62rem; color: var(--accent); margin-left: 3px; }
+  tbody td:first-child, tbody td:nth-child(2), tbody td:nth-child(3) {
+    text-align: left; font-variant-numeric: normal;
+  }
   .player-name { font-weight: 600; }
   .player-name a { color: inherit; text-decoration: none; }
-  .player-name a:hover { color: var(--series-1); text-decoration: underline; }
-  .team-badge { color: var(--text-muted); font-size: 0.8rem; }
-
-  footer.page-foot { margin-top: 28px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
-  .empty-state { padding: 32px; text-align: center; color: var(--text-muted); }
+  .player-name a:hover { color: var(--accent); text-decoration: underline; }
+  .team-badge {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.06em;
+  }
 </style>
 
 <div class="viz-root">
   <div class="wrap">
     <header class="page-head">
-      <h1>NBA DATA LAB — <span id="season-title">시즌별</span> 정규시즌 스탯</h1>
-      <p>basketball-reference.com 데이터를 기반으로 정리한 선수 개인 기록(경기당 평균 + 고급 스탯)입니다. 상단에서 시즌을 선택할 수 있고, 트레이드된 선수는 시즌 합산 기록으로 통합했습니다. 선수명을 클릭하면 커리어 추이를 볼 수 있습니다.</p>
+      <div class="eyebrow"><span id="season-title">—</span> 정규시즌</div>
+      <h1>시즌별 스탯</h1>
+      <p>선수 개인 기록(경기당 평균 + 고급 스탯)입니다. 상단에서 시즌을 고를 수 있고, 트레이드된 선수는 시즌 합산으로 통합했습니다. 선수명을 클릭하면 커리어 추이로 이동합니다.</p>
       <div class="nav-links">
         <a class="nav-link" href="__HOME_URL__">← 홈</a>
         <a class="nav-link" href="__NDL_URL__">NDL Score</a>

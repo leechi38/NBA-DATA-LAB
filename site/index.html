@@ -1,115 +1,625 @@
 <title>NBA DATA LAB</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  .viz-root {
-    color-scheme: light;
-    --page-plane:     #f9f9f7;
-    --surface-1:      #fcfcfb;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6;
-    --series-2:       #eb6834;
-    --series-3:       #1baf7a;
-    --series-4:       #eda100;
-    --series-5:       #8560d9;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --page-plane:     #0d0d0d;
-      --surface-1:      #1a1a19;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --series-2:       #d95926;
-      --series-3:       #199e70;
-      --series-4:       #c98500;
-      --series-5:       #9b7fe8;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
+/* NBA DATA LAB 공통 스타일
+ *
+ * 컨셉: 기록집(record book). 농구의 고유 문서 형식은 박스스코어이므로 카드와 그림자 대신
+ * 괘선과 표를 기본 구조로 쓴다. 액센트는 농구공 가죽색 하나만 두고, 숫자가 중요한 화면이라
+ * 응축형 서체(Oswald)로 수치를 세운다. 한글 본문은 IBM Plex Sans KR이 담당한다.
+ *
+ * 빌드 시점에 site_config.apply_base_css()가 각 템플릿의 자리표시자에 이 파일을 통째로
+ * 끼워 넣는다. 페이지 고유 레이아웃은 각 템플릿이 이 뒤에 이어서 정의한다.
+ */
+
+.viz-root {
+  color-scheme: light;
+  --paper:        #f4f3f0;
+  --surface:      #ffffff;
+  --surface-sunk: #edece8;
+  --ink:          #16181d;
+  --ink-2:        #4a4e57;
+  --ink-3:        #878b93;
+  --rule:         #dedcd6;
+  --rule-strong:  #16181d;
+  --accent:       #cf4a20;
+  --accent-soft:  #fbeee9;
+  --pos:          #1c7f5a;
+  --neg:          #b03a2e;
+
+  /* 차트용 계열색. 액센트와 충돌하지 않는 범위에서 4개만 둔다. */
+  --cat-1: #cf4a20;  /* 액센트(가죽) */
+  --cat-2: #2a6f7a;  /* 딥 틸 */
+  --cat-3: #7b6193;  /* 슬레이트 바이올렛 */
+  --cat-4: #b08420;  /* 오커 */
+  --seq-lo: #f6ddd2;
+  --seq-hi: #cf4a20;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .viz-root {
     color-scheme: dark;
-    --page-plane:     #0d0d0d;
-    --surface-1:      #1a1a19;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --series-2:       #d95926;
-    --series-3:       #199e70;
-    --series-4:       #c98500;
-    --series-5:       #9b7fe8;
+    --paper:        #101216;
+    --surface:      #171a1f;
+    --surface-sunk: #1d2127;
+    --ink:          #f2f3f5;
+    --ink-2:        #a8adb6;
+    --ink-3:        #6f747d;
+    --rule:         #2a2e35;
+    --rule-strong:  #6f747d;
+    --accent:       #f2683b;
+    --accent-soft:  #2b1710;
+    --pos:          #3fbc8b;
+    --neg:          #e2705f;
+    --cat-1: #f2683b;
+    --cat-2: #4fa8b5;
+    --cat-3: #a68cc0;
+    --cat-4: #d9ab45;
+    --seq-lo: #3a2018;
+    --seq-hi: #f2683b;
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root {
-    background: var(--page-plane); color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    padding: 32px 16px;
-  }
-  .wrap { max-width: 720px; width: 100%; }
-  h1 { font-size: 1.9rem; margin: 0 0 8px; letter-spacing: -0.01em; }
-  .tagline { color: var(--text-secondary); font-size: 0.98rem; line-height: 1.6; margin: 0 0 32px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-  .card {
-    display: block; text-decoration: none; color: inherit;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
-    padding: 22px 22px 24px; transition: border-color 0.15s ease;
-  }
-  .card:hover { border-color: var(--accent); }
-  .card.stats { --accent: var(--series-1); }
-  .card.player { --accent: var(--series-5); }
-  .card.ndl { --accent: var(--series-2); }
-  .card.scatter { --accent: var(--series-3); }
-  .card.sim { --accent: var(--series-4); }
-  .card:hover { border-color: var(--accent, var(--series-1)); }
-  .card .eyebrow { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); font-weight: 600; }
-  .card h2 { font-size: 1.15rem; margin: 6px 0 8px; }
-  .card p { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.55; margin: 0; }
-  .card .go { margin-top: 14px; font-size: 0.82rem; color: var(--accent); }
-  footer { margin-top: 28px; font-size: 0.78rem; color: var(--text-muted); text-align: center; }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --paper:        #101216;
+  --surface:      #171a1f;
+  --surface-sunk: #1d2127;
+  --ink:          #f2f3f5;
+  --ink-2:        #a8adb6;
+  --ink-3:        #6f747d;
+  --rule:         #2a2e35;
+  --rule-strong:  #6f747d;
+  --accent:       #f2683b;
+  --accent-soft:  #2b1710;
+  --pos:          #3fbc8b;
+  --neg:          #e2705f;
+  --cat-1: #f2683b;
+  --cat-2: #4fa8b5;
+  --cat-3: #a68cc0;
+  --cat-4: #d9ab45;
+  --seq-lo: #3a2018;
+  --seq-hi: #f2683b;
+}
+
+/* ── 구 토큰 이름 별칭 ──────────────────────────────────────
+ * 페이지별 CSS와 캔버스 그리기 코드가 예전 이름을 쓰고 있다. var() 참조는
+ * 사용 시점에 풀리므로, 여기 한 번만 선언해도 다크 모드에서 알아서 따라간다.
+ */
+.viz-root {
+  --surface-1:      var(--surface);
+  --page-plane:     var(--paper);
+  --text-primary:   var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-muted:     var(--ink-3);
+  --grid:           var(--rule);
+  --baseline:       var(--rule);
+  --border:         var(--rule);
+  --row-hover:      var(--surface-sunk);
+  --chip-bg:        var(--surface-sunk);
+  --chip-bg-active: var(--accent-soft);
+  --dot:            var(--accent);
+  --good:           var(--pos);
+  --div-pos:        var(--pos);
+  --div-neg:        var(--neg);
+  --div-mid:        var(--ink-3);
+  --series-1:       var(--cat-1);
+  --series-2:       var(--cat-2);
+  --series-3:       var(--cat-3);
+  --series-4:       var(--cat-4);
+  --seq-100:        var(--seq-lo);
+  --seq-400:        var(--seq-hi);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+.viz-root {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding-block: 28px 72px;
+  padding-inline: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+/* ── 응축형 서체: 제목·라벨·수치 ───────────────────────────── */
+.display,
+.viz-root h1,
+.stat-figure,
+.rank-num {
+  font-family: Oswald, "IBM Plex Sans KR", system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.viz-root h1 {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+  line-height: 1.15;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.viz-root h2 { font-size: 1.05rem; margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
+.viz-root h3 { font-size: 0.92rem; margin: 0 0 6px; font-weight: 600; }
+
+/* 섹션을 여는 작은 라벨. 카드 대신 이걸로 구역을 나눈다. */
+.eyebrow {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+
+/* ── 머리말 ────────────────────────────────────────────── */
+header.page-head { border-bottom: 2px solid var(--rule-strong); padding-bottom: 14px; margin-bottom: 22px; }
+header.page-head p { margin: 0; color: var(--ink-2); font-size: 0.92rem; max-width: 68ch; }
+
+.nav-links { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 14px; }
+.nav-link {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-2); text-decoration: none;
+  padding: 5px 11px; border-radius: 3px;
+}
+.nav-link:hover { color: var(--accent); background: var(--accent-soft); }
+
+/* ── 조작부 ────────────────────────────────────────────── */
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.controls input, .controls select,
+.setup input, .setup select {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 4px;
+  padding: 7px 11px; font-size: 0.88rem; font-family: inherit;
+}
+.controls input:focus-visible, .controls select:focus-visible,
+.setup input:focus-visible, .setup select:focus-visible,
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.controls input { flex: 1 1 200px; min-width: 150px; }
+.controls select#season-select,
+#season-select {
+  font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.03em; font-weight: 500;
+}
+.controls .count, .count { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); white-space: nowrap; }
+
+/* ── 표: 카드가 아니라 괘선으로 ─────────────────────────── */
+.table-scroll { overflow-x: auto; border-top: 2px solid var(--rule-strong); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--paper);
+  font-family: Oswald, system-ui, sans-serif;
+  font-weight: 500; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-3); text-align: right; white-space: nowrap;
+  padding: 9px 12px; border-bottom: 1px solid var(--rule);
+}
+tbody td {
+  padding: 8px 12px; text-align: right;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+tbody tr:hover td { background: var(--surface-sunk); }
+.rank-num { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+footer.page-foot {
+  margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--rule);
+  font-size: 0.78rem; color: var(--ink-3); line-height: 1.6;
+}
+
+.empty-state { padding: 40px 16px; text-align: center; color: var(--ink-3); font-size: 0.88rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+
+.viz-root { padding-block: 40px 72px; }
+.wrap { max-width: 980px; }
+
+/* ── 제호 ─────────────────────────────────────────────── */
+.masthead { border-bottom: 3px solid var(--rule-strong); padding-bottom: 16px; }
+.masthead .kicker {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 8px;
+}
+.masthead h1 {
+  font-size: clamp(2rem, 1.2rem + 3.6vw, 3.4rem);
+  font-weight: 600; letter-spacing: 0.02em; margin: 0;
+}
+.masthead .thesis {
+  margin: 12px 0 0; max-width: 60ch;
+  font-size: 1rem; color: var(--ink-2); line-height: 1.65;
+}
+
+/* ── 규모 수치 ────────────────────────────────────────── */
+.scale-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 1px; background: var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.scale-cell { background: var(--paper); padding: 16px 4px 18px; }
+.scale-cell .stat-figure {
+  display: block; font-size: 1.85rem; font-weight: 600; line-height: 1;
+  font-variant-numeric: tabular-nums; margin-bottom: 5px;
+}
+.scale-cell .stat-label {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+}
+
+/* ── 히어로: 척도 상한에 닿은 시즌 ────────────────────── */
+.ceiling { margin-top: 40px; }
+.ceiling-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.ceiling-head h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.35rem; font-weight: 600; margin: 0; }
+.ceiling .note { margin: 0 0 16px; font-size: 0.88rem; color: var(--ink-2); max-width: 62ch; }
+.ceiling .note b { color: var(--accent); font-weight: 600; }
+
+.ceiling-list { border-top: 2px solid var(--rule-strong); }
+.ceiling-row {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr auto;
+  align-items: baseline; gap: 14px;
+  padding: 13px 2px; border-bottom: 1px solid var(--rule);
+}
+.ceiling-row .yr {
+  font-family: Oswald, system-ui, sans-serif; font-size: 0.86rem;
+  color: var(--ink-3); font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+}
+.ceiling-row .who { min-width: 0; }
+.ceiling-row .nm { font-weight: 600; font-size: 1rem; }
+.ceiling-row .tm {
+  font-family: Oswald, system-ui, sans-serif; font-size: 0.74rem;
+  letter-spacing: 0.08em; color: var(--ink-3); margin-left: 8px;
+}
+.ceiling-row .line { font-size: 0.82rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ceiling-row .score {
+  font-family: Oswald, system-ui, sans-serif; font-size: 1.35rem; font-weight: 600;
+  color: var(--accent); font-variant-numeric: tabular-nums;
+}
+
+/* ── 최신 시즌 상위권 ─────────────────────────────────── */
+.current { margin-top: 40px; }
+.current h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.1rem; margin: 0 0 12px; }
+.bars { border-top: 2px solid var(--rule-strong); }
+.bar-row {
+  display: grid; grid-template-columns: 1fr 3.2rem;
+  align-items: center; gap: 12px;
+  padding: 10px 2px; border-bottom: 1px solid var(--rule);
+}
+.bar-row .label { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.bar-row .nm { font-weight: 500; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-row .tm { font-family: Oswald, system-ui, sans-serif; font-size: 0.7rem; letter-spacing: 0.08em; color: var(--ink-3); }
+.bar-row .track { position: relative; height: 100%; }
+.bar-row .meter { height: 7px; background: var(--surface-sunk); border-radius: 1px; margin-top: 5px; }
+.bar-row .fill { height: 100%; background: var(--accent); border-radius: 1px; }
+.bar-row .val {
+  font-family: Oswald, system-ui, sans-serif; font-size: 1rem; font-weight: 500;
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.bar-grid { display: grid; grid-template-columns: minmax(0, 13rem) 1fr; gap: 12px; align-items: center; }
+
+/* ── 도구 목록 ────────────────────────────────────────── */
+.tools { margin-top: 44px; }
+.tools h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.1rem; margin: 0 0 12px; }
+.tool-list { border-top: 2px solid var(--rule-strong); }
+.tool {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; align-items: baseline;
+  padding: 16px 2px; border-bottom: 1px solid var(--rule);
+  text-decoration: none; color: inherit;
+}
+.tool:hover { background: var(--accent-soft); }
+.tool:hover .tool-name { color: var(--accent); }
+.tool:hover .arrow { transform: translateX(3px); color: var(--accent); }
+.tool-name {
+  font-family: Oswald, system-ui, sans-serif; font-size: 1.12rem; font-weight: 500;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.tool-name .span {
+  font-size: 0.68rem; letter-spacing: 0.08em; color: var(--ink-3);
+  border: 1px solid var(--rule); border-radius: 2px; padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.tool p { grid-column: 1 / -1; margin: 0; font-size: 0.87rem; color: var(--ink-2); max-width: 70ch; }
+.arrow { font-size: 1.1rem; color: var(--ink-3); transition: transform 0.15s ease, color 0.15s ease; }
+
+@media (max-width: 560px) {
+  .ceiling-row { grid-template-columns: 3.6rem 1fr; row-gap: 4px; }
+  .ceiling-row .score { grid-column: 2; justify-self: start; }
+  .bar-grid { grid-template-columns: 1fr; gap: 4px; }
+}
 </style>
+
 <div class="viz-root">
   <div class="wrap">
-    <h1>🏀 NBA DATA LAB</h1>
-    <p class="tagline">1949-50시즌부터 2025-26시즌까지 NBA 역대 전 시즌 데이터를 정리하고, 자체 개발한 종합 평가 지표로 선수를 분석하는 개인 프로젝트입니다.</p>
-    <div class="cards">
-      <a class="card stats" href="/stats">
-        <div class="eyebrow">Stats</div>
-        <h2>시즌별 스탯 정리</h2>
-        <p>1949-50시즌부터 최신 시즌까지, 선수들의 경기당 기록과 고급 스탯(TS%, PER, WS, BPM 등)을 시즌을 골라 검색·정렬·필터링으로 살펴봅니다.</p>
-        <div class="go">스탯 보러가기 →</div>
-      </a>
-      <a class="card player" href="/player">
-        <div class="eyebrow">Career</div>
-        <h2>선수 커리어 추이</h2>
-        <p>선수 한 명을 검색하면 득점·어시스트·리바운드 등 스탯별 커리어 그래프와 시즌별 기록 전체를 볼 수 있습니다.</p>
-        <div class="go">선수 검색하기 →</div>
-      </a>
-      <a class="card ndl" href="/ndl">
+
+    <header class="masthead">
+      <div class="kicker">1949–50 → 2025–26 · 77 SEASONS</div>
+      <h1>NBA Data Lab</h1>
+      <p class="thesis">
+        NBA 전 시즌 선수 기록을 모아, 직접 만든 평가 지표가 실제로 유효한지 팀 성적과
+        All-NBA 선정 결과로 검증한 개인 프로젝트입니다.
+      </p>
+    </header>
+
+    <div class="scale-row" id="scale-row"></div>
+
+    <section class="ceiling">
+      <div class="ceiling-head">
         <div class="eyebrow">NDL Score</div>
-        <h2>NDL Score 선수 평가</h2>
-        <p>생산성·효율성·플레이메이킹·수비기여·승리기여를 종합한 자체 지표로, 시즌을 골라 선수를 0~100점으로 랭킹합니다.</p>
-        <div class="go">랭킹 보러가기 →</div>
-      </a>
-      <a class="card scatter" href="/scatter">
-        <div class="eyebrow">Scatter</div>
-        <h2>선수 포지셔닝 그래프</h2>
-        <p>시즌을 골라 두 스탯의 산점도로 선수 위치를 비교합니다. 1949-50시즌부터 전 시즌을 지원하며, 점을 클릭하면 선수 기록을 볼 수 있습니다.</p>
-        <div class="go">그래프 보러가기 →</div>
-      </a>
-      <a class="card sim" href="/game">
-        <div class="eyebrow">Simulation</div>
-        <h2>시즌 시뮬레이션 엔진</h2>
-        <p>시즌과 두 팀을 골라 실제 선수 능력치 기반 포제션 시뮬레이션으로 가상 경기를 치릅니다. 슛 구역 데이터가 있는 1996-97시즌부터 지원합니다.</p>
-        <div class="go">경기 시뮬레이션 →</div>
-      </a>
-    </div>
-    <footer>운영자 leechi · basketball-reference.com 데이터 기반 · 개인 분석용 시범 페이지</footer>
+        <h2>척도의 천장에 닿은 다섯 시즌</h2>
+      </div>
+      <p class="note">
+        NDL Score는 평균을 50점에 두고 100점에서 멈추는 척도입니다.
+        77개 시즌 <b id="ps-count">—</b>개의 선수-시즌 가운데, 상한까지 올라온 것은 아래 다섯 개뿐입니다.
+      </p>
+      <div class="ceiling-list" id="ceiling-list"></div>
+    </section>
+
+    <section class="current">
+      <h2 id="current-title">현재 시즌 상위권</h2>
+      <div class="bars" id="current-bars"></div>
+    </section>
+
+    <section class="tools">
+      <h2>둘러보기</h2>
+      <div class="tool-list">
+        <a class="tool" href="/stats">
+          <span class="tool-name">시즌별 스탯 <span class="span">77 시즌</span></span>
+          <span class="arrow">→</span>
+          <p>시즌을 골라 선수들의 경기당 기록과 고급 스탯(TS%, PER, WS, BPM)을 검색·정렬합니다.</p>
+        </a>
+        <a class="tool" href="/ndl">
+          <span class="tool-name">NDL Score <span class="span">77 시즌</span></span>
+          <span class="arrow">→</span>
+          <p>5개 축으로 분해되는 자체 평가 지표. 선수를 클릭하면 어느 축에서 점수가 왔는지 보입니다.</p>
+        </a>
+        <a class="tool" href="/player">
+          <span class="tool-name">선수 커리어 <span class="span">4,913 명</span></span>
+          <span class="arrow">→</span>
+          <p>선수를 검색해 득점·리바운드·어시스트 등 스탯별 커리어 추이를 그래프로 봅니다.</p>
+        </a>
+        <a class="tool" href="/scatter">
+          <span class="tool-name">선수 포지셔닝 <span class="span">77 시즌</span></span>
+          <span class="arrow">→</span>
+          <p>두 스탯을 축으로 놓고 선수들이 서로 어디에 있는지 산점도로 비교합니다.</p>
+        </a>
+        <a class="tool" href="/game">
+          <span class="tool-name">시즌 시뮬레이션 <span class="span">1996–97 ~</span></span>
+          <span class="arrow">→</span>
+          <p>실제 기록으로 만든 능력치로 가상 경기를 돌립니다. 팀을 직접 드래프트할 수도 있습니다.</p>
+        </a>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com · 검증용 팀 성적은 공개 데이터셋 2종 교차 대조 ·
+      NDL Score는 직접 설계한 실험적 지표입니다 · 개인 프로젝트
+    </footer>
+
   </div>
 </div>
+
+<script type="application/json" id="home-data">{
+  "stats": {
+    "seasons": 77,
+    "span": "1949-50 – 2025-26",
+    "playerSeasons": 25292,
+    "players": 4913
+  },
+  "atCap": [
+    {
+      "player": "Michael Jordan",
+      "season": "1987-88",
+      "team": "CHI",
+      "ndl": 100.0,
+      "pts": 35.0,
+      "trb": 5.5,
+      "ast": 5.9
+    },
+    {
+      "player": "Stephen Curry",
+      "season": "2015-16",
+      "team": "GSW",
+      "ndl": 100.0,
+      "pts": 30.1,
+      "trb": 5.4,
+      "ast": 6.7
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2024-25",
+      "team": "DEN",
+      "ndl": 100.0,
+      "pts": 29.6,
+      "trb": 12.7,
+      "ast": 10.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2008-09",
+      "team": "CLE",
+      "ndl": 100.0,
+      "pts": 28.4,
+      "trb": 7.6,
+      "ast": 7.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2012-13",
+      "team": "MIA",
+      "ndl": 100.0,
+      "pts": 26.8,
+      "trb": 8.0,
+      "ast": 7.3
+    }
+  ],
+  "topSeasons": [
+    {
+      "player": "Michael Jordan",
+      "season": "1987-88",
+      "team": "CHI",
+      "ndl": 100.0,
+      "pts": 35.0,
+      "trb": 5.5,
+      "ast": 5.9
+    },
+    {
+      "player": "Stephen Curry",
+      "season": "2015-16",
+      "team": "GSW",
+      "ndl": 100.0,
+      "pts": 30.1,
+      "trb": 5.4,
+      "ast": 6.7
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2024-25",
+      "team": "DEN",
+      "ndl": 100.0,
+      "pts": 29.6,
+      "trb": 12.7,
+      "ast": 10.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2008-09",
+      "team": "CLE",
+      "ndl": 100.0,
+      "pts": 28.4,
+      "trb": 7.6,
+      "ast": 7.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2012-13",
+      "team": "MIA",
+      "ndl": 100.0,
+      "pts": 26.8,
+      "trb": 8.0,
+      "ast": 7.3
+    },
+    {
+      "player": "LeBron James",
+      "season": "2009-10",
+      "team": "CLE",
+      "ndl": 99.8,
+      "pts": 29.7,
+      "trb": 7.3,
+      "ast": 8.6
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2021-22",
+      "team": "DEN",
+      "ndl": 99.0,
+      "pts": 27.1,
+      "trb": 13.8,
+      "ast": 7.9
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2025-26",
+      "team": "DEN",
+      "ndl": 98.1,
+      "pts": 27.7,
+      "trb": 12.9,
+      "ast": 10.7
+    }
+  ],
+  "currentSeason": {
+    "label": "2025-26",
+    "players": [
+      {
+        "player": "Nikola Jokić",
+        "season": "2025-26",
+        "team": "DEN",
+        "ndl": 98.1,
+        "pts": 27.7,
+        "trb": 12.9,
+        "ast": 10.7
+      },
+      {
+        "player": "Shai Gilgeous-Alexander",
+        "season": "2025-26",
+        "team": "OKC",
+        "ndl": 95.0,
+        "pts": 31.1,
+        "trb": 4.3,
+        "ast": 6.6
+      },
+      {
+        "player": "Luka Dončić",
+        "season": "2025-26",
+        "team": "LAL",
+        "ndl": 84.7,
+        "pts": 33.5,
+        "trb": 7.7,
+        "ast": 8.3
+      },
+      {
+        "player": "Victor Wembanyama",
+        "season": "2025-26",
+        "team": "SAS",
+        "ndl": 80.0,
+        "pts": 25.0,
+        "trb": 11.5,
+        "ast": 3.1
+      },
+      {
+        "player": "Kawhi Leonard",
+        "season": "2025-26",
+        "team": "LAC",
+        "ndl": 78.0,
+        "pts": 27.9,
+        "trb": 6.4,
+        "ast": 3.6
+      }
+    ]
+  }
+}</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('home-data').textContent);
+  const num = n => n.toLocaleString('en-US');
+
+  document.getElementById('ps-count').textContent = num(D.stats.playerSeasons);
+
+  document.getElementById('scale-row').innerHTML = [
+    [D.stats.seasons, '시즌'],
+    [num(D.stats.playerSeasons), '선수-시즌'],
+    [num(D.stats.players), '고유 선수'],
+    ['1,663', '검증 팀-시즌'],
+  ].map(([v, l]) => `<div class="scale-cell">
+      <span class="stat-figure">${v}</span>
+      <span class="stat-label">${l}</span>
+    </div>`).join('');
+
+  document.getElementById('ceiling-list').innerHTML = D.atCap.map(r => `
+    <div class="ceiling-row">
+      <span class="yr">${r.season}</span>
+      <span class="who">
+        <span class="nm">${r.player}</span><span class="tm">${r.team}</span>
+        <div class="line">${r.pts} 득점 · ${r.trb} 리바운드 · ${r.ast} 어시스트</div>
+      </span>
+      <span class="score">${r.ndl.toFixed(1)}</span>
+    </div>`).join('');
+
+  const cur = D.currentSeason;
+  document.getElementById('current-title').textContent = `${cur.label} 시즌 상위권`;
+  const max = Math.max(...cur.players.map(p => p.ndl));
+  document.getElementById('current-bars').innerHTML = cur.players.map(p => `
+    <div class="bar-row">
+      <div class="bar-grid">
+        <span class="label"><span class="nm">${p.player}</span><span class="tm">${p.team}</span></span>
+        <span class="track"><span class="meter"><span class="fill" style="width:${(p.ndl / max * 100).toFixed(1)}%"></span></span></span>
+      </div>
+      <span class="val">${p.ndl.toFixed(1)}</span>
+    </div>`).join('');
+})();
+</script>

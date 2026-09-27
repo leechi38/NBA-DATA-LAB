@@ -1,0 +1,179 @@
+{
+  "stats": {
+    "seasons": 77,
+    "span": "1949-50 – 2025-26",
+    "playerSeasons": 25292,
+    "players": 4913
+  },
+  "atCap": [
+    {
+      "player": "Michael Jordan",
+      "season": "1987-88",
+      "team": "CHI",
+      "ndl": 100.0,
+      "pts": 35.0,
+      "trb": 5.5,
+      "ast": 5.9
+    },
+    {
+      "player": "Stephen Curry",
+      "season": "2015-16",
+      "team": "GSW",
+      "ndl": 100.0,
+      "pts": 30.1,
+      "trb": 5.4,
+      "ast": 6.7
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2024-25",
+      "team": "DEN",
+      "ndl": 100.0,
+      "pts": 29.6,
+      "trb": 12.7,
+      "ast": 10.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2008-09",
+      "team": "CLE",
+      "ndl": 100.0,
+      "pts": 28.4,
+      "trb": 7.6,
+      "ast": 7.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2012-13",
+      "team": "MIA",
+      "ndl": 100.0,
+      "pts": 26.8,
+      "trb": 8.0,
+      "ast": 7.3
+    }
+  ],
+  "topSeasons": [
+    {
+      "player": "Michael Jordan",
+      "season": "1987-88",
+      "team": "CHI",
+      "ndl": 100.0,
+      "pts": 35.0,
+      "trb": 5.5,
+      "ast": 5.9
+    },
+    {
+      "player": "Stephen Curry",
+      "season": "2015-16",
+      "team": "GSW",
+      "ndl": 100.0,
+      "pts": 30.1,
+      "trb": 5.4,
+      "ast": 6.7
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2024-25",
+      "team": "DEN",
+      "ndl": 100.0,
+      "pts": 29.6,
+      "trb": 12.7,
+      "ast": 10.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2008-09",
+      "team": "CLE",
+      "ndl": 100.0,
+      "pts": 28.4,
+      "trb": 7.6,
+      "ast": 7.2
+    },
+    {
+      "player": "LeBron James",
+      "season": "2012-13",
+      "team": "MIA",
+      "ndl": 100.0,
+      "pts": 26.8,
+      "trb": 8.0,
+      "ast": 7.3
+    },
+    {
+      "player": "LeBron James",
+      "season": "2009-10",
+      "team": "CLE",
+      "ndl": 99.8,
+      "pts": 29.7,
+      "trb": 7.3,
+      "ast": 8.6
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2021-22",
+      "team": "DEN",
+      "ndl": 99.0,
+      "pts": 27.1,
+      "trb": 13.8,
+      "ast": 7.9
+    },
+    {
+      "player": "Nikola Jokić",
+      "season": "2025-26",
+      "team": "DEN",
+      "ndl": 98.1,
+      "pts": 27.7,
+      "trb": 12.9,
+      "ast": 10.7
+    }
+  ],
+  "currentSeason": {
+    "label": "2025-26",
+    "players": [
+      {
+        "player": "Nikola Jokić",
+        "season": "2025-26",
+        "team": "DEN",
+        "ndl": 98.1,
+        "pts": 27.7,
+        "trb": 12.9,
+        "ast": 10.7
+      },
+      {
+        "player": "Shai Gilgeous-Alexander",
+        "season": "2025-26",
+        "team": "OKC",
+        "ndl": 95.0,
+        "pts": 31.1,
+        "trb": 4.3,
+        "ast": 6.6
+      },
+      {
+        "player": "Luka Dončić",
+        "season": "2025-26",
+        "team": "LAL",
+        "ndl": 84.7,
+        "pts": 33.5,
+        "trb": 7.7,
+        "ast": 8.3
+      },
+      {
+        "player": "Victor Wembanyama",
+        "season": "2025-26",
+        "team": "SAS",
+        "ndl": 80.0,
+        "pts": 25.0,
+        "trb": 11.5,
+        "ast": 3.1
+      },
+      {
+        "player": "Kawhi Leonard",
+        "season": "2025-26",
+        "team": "LAC",
+        "ndl": 78.0,
+        "pts": 27.9,
+        "trb": 6.4,
+        "ast": 3.6
+      }
+    ]
+  }
+}

@@ -1,114 +1,266 @@
-<title>NBA DATA LAB — 시즌별 스탯</title>
+﻿<title>NBA DATA LAB — 시즌별 스탯</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  .viz-root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --page-plane:     #f9f9f7;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid:           #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6;
-    --seq-100:        #cde2fb;
-    --seq-400:        #3987e5;
-    --row-hover:      #f0f4fb;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --page-plane:     #0d0d0d;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid:           #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --seq-100:        #184f95;
-      --seq-400:        #3987e5;
-      --row-hover:      #16233a;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
+/* NBA DATA LAB 공통 스타일
+ *
+ * 컨셉: 기록집(record book). 농구의 고유 문서 형식은 박스스코어이므로 카드와 그림자 대신
+ * 괘선과 표를 기본 구조로 쓴다. 액센트는 농구공 가죽색 하나만 두고, 숫자가 중요한 화면이라
+ * 응축형 서체(Oswald)로 수치를 세운다. 한글 본문은 IBM Plex Sans KR이 담당한다.
+ *
+ * 빌드 시점에 site_config.apply_base_css()가 각 템플릿의 자리표시자에 이 파일을 통째로
+ * 끼워 넣는다. 페이지 고유 레이아웃은 각 템플릿이 이 뒤에 이어서 정의한다.
+ */
+
+.viz-root {
+  color-scheme: light;
+  --paper:        #f4f3f0;
+  --surface:      #ffffff;
+  --surface-sunk: #edece8;
+  --ink:          #16181d;
+  --ink-2:        #4a4e57;
+  --ink-3:        #878b93;
+  --rule:         #dedcd6;
+  --rule-strong:  #16181d;
+  --accent:       #cf4a20;
+  --accent-soft:  #fbeee9;
+  --pos:          #1c7f5a;
+  --neg:          #b03a2e;
+
+  /* 차트용 계열색. 액센트와 충돌하지 않는 범위에서 4개만 둔다. */
+  --cat-1: #cf4a20;  /* 액센트(가죽) */
+  --cat-2: #2a6f7a;  /* 딥 틸 */
+  --cat-3: #7b6193;  /* 슬레이트 바이올렛 */
+  --cat-4: #b08420;  /* 오커 */
+  --seq-lo: #f6ddd2;
+  --seq-hi: #cf4a20;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .viz-root {
     color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --page-plane:     #0d0d0d;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --grid:           #2c2c2a;
-    --baseline:       #383835;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --seq-100:        #184f95;
-    --seq-400:        #3987e5;
-    --row-hover:      #16233a;
+    --paper:        #101216;
+    --surface:      #171a1f;
+    --surface-sunk: #1d2127;
+    --ink:          #f2f3f5;
+    --ink-2:        #a8adb6;
+    --ink-3:        #6f747d;
+    --rule:         #2a2e35;
+    --rule-strong:  #6f747d;
+    --accent:       #f2683b;
+    --accent-soft:  #2b1710;
+    --pos:          #3fbc8b;
+    --neg:          #e2705f;
+    --cat-1: #f2683b;
+    --cat-2: #4fa8b5;
+    --cat-3: #a68cc0;
+    --cat-4: #d9ab45;
+    --seq-lo: #3a2018;
+    --seq-hi: #f2683b;
   }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --paper:        #101216;
+  --surface:      #171a1f;
+  --surface-sunk: #1d2127;
+  --ink:          #f2f3f5;
+  --ink-2:        #a8adb6;
+  --ink-3:        #6f747d;
+  --rule:         #2a2e35;
+  --rule-strong:  #6f747d;
+  --accent:       #f2683b;
+  --accent-soft:  #2b1710;
+  --pos:          #3fbc8b;
+  --neg:          #e2705f;
+  --cat-1: #f2683b;
+  --cat-2: #4fa8b5;
+  --cat-3: #a68cc0;
+  --cat-4: #d9ab45;
+  --seq-lo: #3a2018;
+  --seq-hi: #f2683b;
+}
 
-  * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root {
-    background: var(--page-plane);
-    color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    min-height: 100vh;
-    padding: 32px 16px 64px;
-  }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  header.page-head h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header.page-head p { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
-  .nav-links { margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .nav-link { font-size: 0.88rem; color: var(--series-1); text-decoration: none; border-bottom: 1px solid transparent; }
-  .nav-link:hover { border-bottom-color: var(--series-1); }
+/* ── 구 토큰 이름 별칭 ──────────────────────────────────────
+ * 페이지별 CSS와 캔버스 그리기 코드가 예전 이름을 쓰고 있다. var() 참조는
+ * 사용 시점에 풀리므로, 여기 한 번만 선언해도 다크 모드에서 알아서 따라간다.
+ */
+.viz-root {
+  --surface-1:      var(--surface);
+  --page-plane:     var(--paper);
+  --text-primary:   var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-muted:     var(--ink-3);
+  --grid:           var(--rule);
+  --baseline:       var(--rule);
+  --border:         var(--rule);
+  --row-hover:      var(--surface-sunk);
+  --chip-bg:        var(--surface-sunk);
+  --chip-bg-active: var(--accent-soft);
+  --dot:            var(--accent);
+  --good:           var(--pos);
+  --div-pos:        var(--pos);
+  --div-neg:        var(--neg);
+  --div-mid:        var(--ink-3);
+  --series-1:       var(--cat-1);
+  --series-2:       var(--cat-2);
+  --series-3:       var(--cat-3);
+  --series-4:       var(--cat-4);
+  --seq-100:        var(--seq-lo);
+  --seq-400:        var(--seq-hi);
+}
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0; }
-  .tile {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 16px;
-  }
-  .tile .tile-label { font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-  .tile .tile-value { font-size: 1.6rem; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .tile .tile-sub { font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px; }
+* { box-sizing: border-box; }
+body { margin: 0; }
 
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 12px; align-items: center; }
-  .controls input, .controls select {
-    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; font-family: inherit;
-  }
-  .controls input { flex: 1 1 220px; min-width: 160px; }
-  .controls select#season-select { font-weight: 600; }
-  .controls .count { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+.viz-root {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding-block: 28px 72px;
+  padding-inline: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
 
-  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
-  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; white-space: nowrap; }
-  thead th {
-    position: sticky; top: 0; background: var(--surface-1); z-index: 1;
-    text-align: right; padding: 10px 12px; font-weight: 600; color: var(--text-secondary);
-    border-bottom: 1px solid var(--grid); cursor: pointer; user-select: none;
+/* ── 응축형 서체: 제목·라벨·수치 ───────────────────────────── */
+.display,
+.viz-root h1,
+.stat-figure,
+.rank-num {
+  font-family: Oswald, "IBM Plex Sans KR", system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.viz-root h1 {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+  line-height: 1.15;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.viz-root h2 { font-size: 1.05rem; margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
+.viz-root h3 { font-size: 0.92rem; margin: 0 0 6px; font-weight: 600; }
+
+/* 섹션을 여는 작은 라벨. 카드 대신 이걸로 구역을 나눈다. */
+.eyebrow {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+
+/* ── 머리말 ────────────────────────────────────────────── */
+header.page-head { border-bottom: 2px solid var(--rule-strong); padding-bottom: 14px; margin-bottom: 22px; }
+header.page-head p { margin: 0; color: var(--ink-2); font-size: 0.92rem; max-width: 68ch; }
+
+.nav-links { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 14px; }
+.nav-link {
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-2); text-decoration: none;
+  padding: 5px 11px; border-radius: 3px;
+}
+.nav-link:hover { color: var(--accent); background: var(--accent-soft); }
+
+/* ── 조작부 ────────────────────────────────────────────── */
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.controls input, .controls select,
+.setup input, .setup select {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 4px;
+  padding: 7px 11px; font-size: 0.88rem; font-family: inherit;
+}
+.controls input:focus-visible, .controls select:focus-visible,
+.setup input:focus-visible, .setup select:focus-visible,
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.controls input { flex: 1 1 200px; min-width: 150px; }
+.controls select#season-select,
+#season-select {
+  font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.03em; font-weight: 500;
+}
+.controls .count, .count { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); white-space: nowrap; }
+
+/* ── 표: 카드가 아니라 괘선으로 ─────────────────────────── */
+.table-scroll { overflow-x: auto; border-top: 2px solid var(--rule-strong); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--paper);
+  font-family: Oswald, system-ui, sans-serif;
+  font-weight: 500; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-3); text-align: right; white-space: nowrap;
+  padding: 9px 12px; border-bottom: 1px solid var(--rule);
+}
+tbody td {
+  padding: 8px 12px; text-align: right;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+tbody tr:hover td { background: var(--surface-sunk); }
+.rank-num { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+footer.page-foot {
+  margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--rule);
+  font-size: 0.78rem; color: var(--ink-3); line-height: 1.6;
+}
+
+.empty-state { padding: 40px 16px; text-align: center; color: var(--ink-3); font-size: 0.88rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+
+  /* ── 리더 타일 ─────────────────────────────────────────── */
+  .tiles {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px; background: var(--rule);
+    border-block: 1px solid var(--rule);
+    margin: 22px 0;
   }
+  .tile { background: var(--paper); padding: 13px 14px 15px; }
+  .tile .tile-label {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 0.68rem; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .tile .tile-value {
+    font-family: Oswald, system-ui, sans-serif;
+    font-size: 1.7rem; font-weight: 600; line-height: 1.1;
+    margin-top: 3px; font-variant-numeric: tabular-nums;
+  }
+  .tile .tile-sub { font-size: 0.82rem; color: var(--ink-2); margin-top: 1px; }
+
+  /* ── 표: 정렬 가능한 헤더 + 좌측 3열은 텍스트 ───────────── */
+  table { white-space: nowrap; }
+  thead th { cursor: pointer; user-select: none; }
+  thead th:hover { color: var(--accent); }
   thead th:first-child, thead th:nth-child(2), thead th:nth-child(3) { text-align: left; }
-  thead th .arrow { font-size: 0.7rem; color: var(--series-1); margin-left: 3px; }
-  tbody td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
-  tbody td:first-child, tbody td:nth-child(2), tbody td:nth-child(3) { text-align: left; font-variant-numeric: normal; }
-  tbody tr:hover { background: var(--row-hover); }
-  tbody tr:last-child td { border-bottom: none; }
+  thead th .arrow { font-size: 0.62rem; color: var(--accent); margin-left: 3px; }
+  tbody td:first-child, tbody td:nth-child(2), tbody td:nth-child(3) {
+    text-align: left; font-variant-numeric: normal;
+  }
   .player-name { font-weight: 600; }
   .player-name a { color: inherit; text-decoration: none; }
-  .player-name a:hover { color: var(--series-1); text-decoration: underline; }
-  .team-badge { color: var(--text-muted); font-size: 0.8rem; }
-
-  footer.page-foot { margin-top: 28px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
-  .empty-state { padding: 32px; text-align: center; color: var(--text-muted); }
+  .player-name a:hover { color: var(--accent); text-decoration: underline; }
+  .team-badge {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.06em;
+  }
 </style>
 
 <div class="viz-root">
   <div class="wrap">
     <header class="page-head">
-      <h1>NBA DATA LAB — <span id="season-title">시즌별</span> 정규시즌 스탯</h1>
-      <p>basketball-reference.com 데이터를 기반으로 정리한 선수 개인 기록(경기당 평균 + 고급 스탯)입니다. 상단에서 시즌을 선택할 수 있고, 트레이드된 선수는 시즌 합산 기록으로 통합했습니다. 선수명을 클릭하면 커리어 추이를 볼 수 있습니다.</p>
+      <div class="eyebrow"><span id="season-title">—</span> 정규시즌</div>
+      <h1>시즌별 스탯</h1>
+      <p>선수 개인 기록(경기당 평균 + 고급 스탯)입니다. 상단에서 시즌을 고를 수 있고, 트레이드된 선수는 시즌 합산으로 통합했습니다. 선수명을 클릭하면 커리어 추이로 이동합니다.</p>
       <div class="nav-links">
         <a class="nav-link" href="/">← 홈</a>
         <a class="nav-link" href="/ndl">NDL Score</a>

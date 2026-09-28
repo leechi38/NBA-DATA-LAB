@@ -27,6 +27,27 @@ __BASE_CSS__
   .score-cell .v .arrow { color: var(--ink-3); font-size: 0.9rem; margin: 0 3px; }
   .score-cell .sub { font-size: 0.72rem; color: var(--ink-3); }
 
+  /* ── 기량 구간별 회귀율 ────────────────────────────────── */
+  .tier-block { margin-top: 18px; }
+  .tier-block h3 {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.85rem;
+    letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 3px; font-weight: 500;
+  }
+  .tier-block p { margin: 0 0 10px; font-size: 0.82rem; color: var(--ink-2); max-width: 64ch; }
+  .tiers { border-top: 1px solid var(--rule); }
+  .tier-row {
+    display: grid; grid-template-columns: 5.5rem 1fr 3.4rem;
+    align-items: center; gap: 12px; padding: 7px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .tier-row .tname { font-size: 0.82rem; color: var(--ink-2); }
+  .tier-row .tbar { height: 8px; background: var(--surface-sunk); border-radius: 1px; }
+  .tier-row .tfill { display: block; height: 100%; background: var(--accent); border-radius: 1px; }
+  .tier-row .tval {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.92rem; font-weight: 500;
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+
   details.notes { margin-top: 14px; }
   details.notes > summary {
     font-family: Oswald, system-ui, sans-serif; font-size: 0.8rem;
@@ -96,6 +117,13 @@ __BASE_CSS__
       <div class="formula" id="formula">—</div>
       <div class="scores" id="scores"></div>
 
+      <div class="tier-block">
+        <h3>기량 구간별 평균회귀율</h3>
+        <p>직전 세 시즌 평균이 높은 선수일수록 다음 시즌에 리그 평균 쪽으로 덜 내려옵니다.
+           구간을 나누지 않으면 상위권을 실제보다 두 배 끌어내리게 됩니다.</p>
+        <div class="tiers" id="tiers"></div>
+      </div>
+
       <details class="notes">
         <summary>어떻게 만들었고, 무엇을 검증했는지</summary>
         <p class="caveat">
@@ -106,6 +134,14 @@ __BASE_CSS__
           정했는데, 점수대별 편향을 재보니 <strong>80점대 선수를 5.7점, 90점대를 6.5점씩 낮게</strong>
           예측하고 있었습니다. 상위권을 과도하게 끌어내린 것입니다. 계수를 최소제곱으로 추정하도록
           바꾸자 모든 구간에서 편향이 ±0.6 안으로 들어왔습니다.<br/>
+          <strong>평균회귀는 모두에게 같지 않습니다.</strong> 기울기를 하나만 두면 전원에게 같은
+          비율이 적용되는데, 실제로는 등급마다 크게 다릅니다. 직전 세 시즌 평균이 80점 이상인
+          선수는 다음 시즌에 평균 쪽으로 <strong>6%</strong>만 내려오는 반면, 50점 미만은
+          <strong>54%</strong> 내려옵니다(후자는 상당 부분 생존 편향입니다). 그래서 기량 구간별로
+          기울기를 따로 추정했습니다. 다만 자유롭게 두면 상위 구간이 "평균에서 멀어진다"는 값을
+          내놓습니다 — 80점 이상 표본이 역대 157개뿐이라 생기는 과적합입니다. 그래서
+          <strong>기울기가 구간에 따라 줄지 않고, 1을 넘지도 않는다</strong>는 두 제약을 걸고
+          그 안에서 값을 고르게 했습니다.<br/>
           <strong>나이 곡선은 그대로 믿으면 안 됩니다.</strong> 곡선은 다음 시즌에도 리그에 남은
           선수들로만 계산됩니다. 못한 선수는 표본에서 빠지므로, 특히 젊은 나이대의 상승폭이
           부풀려집니다(생존 편향). 그래서 젊은 구간과 30세 이상 구간의 계수를 따로 추정했고,
@@ -165,12 +201,22 @@ __BASE_CSS__
 
   const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2);
   document.getElementById('formula').innerHTML =
-    `예측 = <b>${sgn(C[0])}</b> <b>${sgn(C[1])}</b> × 최근 3시즌 가중평균 ` +
-    `<b>${sgn(C[2])}</b> × 나이델타(${M.ageSplit}세 미만) ` +
-    `<b>${sgn(C[3])}</b> × 나이델타(${M.ageSplit}세 이상)`;
+    `예측 = <b>${sgn(C[0])}</b> <b>기량 구간별 기울기</b> × 최근 3시즌 가중평균 ` +
+    `<b>${sgn(C[C.length - 2])}</b> × 나이델타(${M.ageSplit}세 미만) ` +
+    `<b>${sgn(C[C.length - 1])}</b> × 나이델타(${M.ageSplit}세 이상)`;
 
   document.getElementById('coef-note').textContent =
-    `${C[2].toFixed(2)} 대 ${C[3].toFixed(2)}`;
+    `${C[C.length - 2].toFixed(2)} 대 ${C[C.length - 1].toFixed(2)}`;
+
+  // 기량 구간별 평균회귀율 — 이 페이지에서 제일 설명이 필요한 부분
+  document.getElementById('tiers').innerHTML = M.tiers.map(t => {
+    const w = Math.max(2, t.shrink / Math.max(...M.tiers.map(x => x.shrink)) * 100);
+    return `<div class="tier-row">
+        <span class="tname">${t.label}</span>
+        <span class="tbar"><span class="tfill" style="width:${w.toFixed(1)}%"></span></span>
+        <span class="tval">${t.shrink.toFixed(1)}%</span>
+      </div>`;
+  }).join('');
 
   document.getElementById('scores').innerHTML = [
     ['평균 오차 (MAE)', `<span class="was">${M.baselineMae}</span><span class="arrow">→</span>${M.mae}`,

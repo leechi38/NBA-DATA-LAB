@@ -79,6 +79,12 @@ def main():
                         (BASE / "all_seasons_game.json").read_text(encoding="utf-8"))
     sizes["game.html"] = write("game.html", apply_urls(html))
 
+    # --- 다음 시즌 예측 ---
+    html = (BASE / "projection_template.html").read_text(encoding="utf-8")
+    html = html.replace("__PROJ_DATA__",
+                        (BASE / "projection.json").read_text(encoding="utf-8"))
+    sizes["projection.html"] = write("projection.html", apply_urls(html))
+
     # --- Vercel 설정: 확장자 없는 주소 + 정적 자산 캐싱 ---
     (SITE / "vercel.json").write_text(json.dumps({
         "cleanUrls": True,

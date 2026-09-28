@@ -1,4 +1,4 @@
-"""배포 대상별 페이지 간 링크 주소와, 모든 템플릿이 공유하는 기본 스타일.
+﻿"""배포 대상별 페이지 간 링크 주소와, 모든 템플릿이 공유하는 기본 스타일.
 
 같은 템플릿을 두 곳에 배포한다.
   artifact — claude.ai 아티팩트. 페이지마다 독립된 URL이라 절대주소로 연결한다.
@@ -28,6 +28,7 @@ ARTIFACT_URLS = {
     "__PLAYER_URL__": "https://claude.ai/artifact/2ZnLftGFrGrc9bJJY1rEt6",
     "__SCATTER_URL__": "https://claude.ai/code/artifact/8d314bec-60df-47a7-a230-ec902e645663",
     "__GAME_URL__": "https://claude.ai/code/artifact/7e46c135-6b01-4457-8702-1d11158912d0",
+    "__PROJ_URL__": "https://nba-data-lab.vercel.app/projection",
 }
 
 # vercel.json의 cleanUrls 설정으로 .html 확장자 없이 접근한다.
@@ -38,6 +39,7 @@ WEB_URLS = {
     "__PLAYER_URL__": "/player",
     "__SCATTER_URL__": "/scatter",
     "__GAME_URL__": "/game",
+    "__PROJ_URL__": "/projection",
 }
 
 # 템플릿 → 웹 배포 시 파일명
@@ -48,4 +50,5 @@ WEB_FILENAMES = {
     "player": "player.html",
     "scatter": "scatter.html",
     "game": "game.html",
+    "projection": "projection.html",
 }

@@ -1,0 +1,272 @@
+<title>다음 시즌 예측 — NBA DATA LAB</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+__BASE_CSS__
+
+  /* ── 모델 요약 ─────────────────────────────────────────── */
+  .model { margin: 22px 0 26px; border-block: 1px solid var(--rule); padding: 16px 0; }
+  .formula {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.92rem; letter-spacing: 0.01em;
+    padding: 9px 0 11px; border-bottom: 1px solid var(--rule); margin-bottom: 14px;
+    overflow-x: auto; white-space: nowrap;
+  }
+  .formula b { color: var(--accent); font-weight: 600; }
+
+  .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); }
+  .score-cell { background: var(--paper); padding: 12px 4px 14px; }
+  .score-cell .k {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.66rem;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .score-cell .v {
+    font-family: Oswald, system-ui, sans-serif; font-size: 1.5rem; font-weight: 600;
+    line-height: 1.15; font-variant-numeric: tabular-nums;
+  }
+  .score-cell .v .was { color: var(--ink-3); font-size: 1rem; }
+  .score-cell .v .arrow { color: var(--ink-3); font-size: 0.9rem; margin: 0 3px; }
+  .score-cell .sub { font-size: 0.72rem; color: var(--ink-3); }
+
+  details.notes { margin-top: 14px; }
+  details.notes > summary {
+    font-family: Oswald, system-ui, sans-serif; font-size: 0.8rem;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+    cursor: pointer; padding: 7px 0; list-style: none;
+  }
+  details.notes > summary::-webkit-details-marker { display: none; }
+  details.notes > summary::before { content: "▸ "; color: var(--accent); }
+  details.notes[open] > summary::before { content: "▾ "; }
+  details.notes > summary:hover { color: var(--accent); }
+  .caveat { margin: 4px 0 0; font-size: 0.83rem; color: var(--ink-2); line-height: 1.75; }
+  .caveat strong { color: var(--ink); font-weight: 600; }
+
+  /* ── 나이 곡선 ─────────────────────────────────────────── */
+  .curve-wrap { margin: 26px 0; border-top: 2px solid var(--rule-strong); padding-top: 12px; }
+  .curve-wrap h2 {
+    font-family: Oswald, system-ui, sans-serif; font-size: 1.05rem; margin: 0 0 2px;
+  }
+  .curve-wrap p { margin: 0 0 10px; font-size: 0.84rem; color: var(--ink-2); max-width: 66ch; }
+  svg.curve { width: 100%; height: auto; display: block; overflow: visible; }
+  .curve .gridline { stroke: var(--rule); stroke-width: 1; }
+  .curve .zero { stroke: var(--ink-3); stroke-width: 1; }
+  .curve text { fill: var(--ink-3); font-size: 10px; font-family: Oswald, system-ui, sans-serif; }
+  .curve .area-up { fill: var(--pos); fill-opacity: 0.16; }
+  .curve .area-dn { fill: var(--accent); fill-opacity: 0.16; }
+  .curve .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+  .curve .peak { fill: var(--ink); }
+
+  /* ── 예측표 ────────────────────────────────────────────── */
+  thead th:nth-child(-n+4) { text-align: left; }
+  tbody td:nth-child(-n+4) { text-align: left; font-variant-numeric: normal; }
+  .rank { color: var(--ink-3); width: 30px; font-variant-numeric: tabular-nums; }
+  .player-name { font-weight: 600; }
+  .team-badge {
+    font-family: Oswald, system-ui, sans-serif;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.06em;
+  }
+  .age-cell { font-family: Oswald, system-ui, sans-serif; color: var(--ink-2); font-size: 0.82rem; }
+  .proj {
+    font-family: Oswald, system-ui, sans-serif; font-size: 1.02rem; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .chg { font-variant-numeric: tabular-nums; font-weight: 500; }
+  .chg.up { color: var(--pos); }
+  .chg.dn { color: var(--neg); }
+  .chg.flat { color: var(--ink-3); }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <div class="eyebrow"><span id="from-season">—</span> 기록 기준</div>
+      <h1><span id="to-season">—</span> 시즌 예측</h1>
+      <p>지난 세 시즌 기록과 나이에 따른 성장·노화 추세로 다음 시즌 NDL Score를 예측합니다.
+         아직 일어나지 않은 일이므로, 맞고 틀림은 다음 시즌이 끝나면 드러납니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__STATS_URL__">시즌 스탯</a>
+        <a class="nav-link" href="__NDL_URL__">NDL Score</a>
+        <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
+        <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
+        <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
+      </div>
+    </header>
+
+    <section class="model">
+      <div class="formula" id="formula">—</div>
+      <div class="scores" id="scores"></div>
+
+      <details class="notes">
+        <summary>어떻게 만들었고, 무엇을 검증했는지</summary>
+        <p class="caveat">
+          <strong>기준선부터 쌓았습니다.</strong> "작년 성적 그대로"를 기준으로 두고, 최근 세 시즌
+          가중평균(5:4:3) → 평균회귀 → 나이 보정 순으로 하나씩 더하며 매번 홀드아웃에서 측정했습니다.
+          기준선을 못 이기는 항은 넣지 않았습니다.<br/>
+          <strong>계수는 손으로 정하지 않았습니다.</strong> 처음에는 평균회귀 강도를 임의의 식으로
+          정했는데, 점수대별 편향을 재보니 <strong>80점대 선수를 5.7점, 90점대를 6.5점씩 낮게</strong>
+          예측하고 있었습니다. 상위권을 과도하게 끌어내린 것입니다. 계수를 최소제곱으로 추정하도록
+          바꾸자 모든 구간에서 편향이 ±0.6 안으로 들어왔습니다.<br/>
+          <strong>나이 곡선은 그대로 믿으면 안 됩니다.</strong> 곡선은 다음 시즌에도 리그에 남은
+          선수들로만 계산됩니다. 못한 선수는 표본에서 빠지므로, 특히 젊은 나이대의 상승폭이
+          부풀려집니다(생존 편향). 그래서 젊은 구간과 30세 이상 구간의 계수를 따로 추정했고,
+          결과는 <strong id="coef-note">—</strong>로 젊은 구간을 실제로 덜 신뢰합니다.<br/>
+          <strong>검증 방식</strong>: 계수를 2015년까지의 시즌에서만 학습하고, 이후 시즌으로
+          시험했습니다. 시즌 단위로 갈라 정보 누수를 막았습니다.<br/>
+          <strong>한계</strong>: 부상·이적·역할 변화·신인은 반영하지 못합니다. 직전 세 시즌의
+          기록과 나이만 씁니다. 평균 4.2점 오차는 <strong>순위를 크게 뒤집기에 충분한 크기</strong>이므로,
+          개별 선수의 예측값보다 전체적인 추세로 읽는 편이 맞습니다.
+        </p>
+      </details>
+    </section>
+
+    <section class="curve-wrap">
+      <h2>나이에 따른 연간 변화</h2>
+      <p>연속 두 시즌을 모두 뛴 선수들을 모아, 나이별로 NDL Score가 평균 몇 점 변했는지 구한 값입니다.</p>
+      <svg class="curve" id="curve" viewBox="0 0 760 210" preserveAspectRatio="xMidYMid meet"></svg>
+    </section>
+
+    <section class="controls">
+      <input type="text" id="search" placeholder="선수 또는 팀 검색…" />
+      <select id="sort">
+        <option value="projected">예측 점수 높은 순</option>
+        <option value="change-up">상승 폭 큰 순</option>
+        <option value="change-dn">하락 폭 큰 순</option>
+        <option value="current">올해 점수 높은 순</option>
+        <option value="age">나이 어린 순</option>
+      </select>
+      <span class="count" id="count-label"></span>
+    </section>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>선수</th><th>팀</th><th>나이</th>
+          <th>올해</th><th>예측</th><th>변화</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com · 직전 세 시즌에 총 출전 500분 이상인 선수만 대상 ·
+      NDL Score와 이 예측 모두 직접 설계한 실험적 지표입니다 · 개인 프로젝트
+    </footer>
+  </div>
+</div>
+
+<script type="application/json" id="proj-data">__PROJ_DATA__</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('proj-data').textContent);
+  const M = D.model, C = M.finalCoef;
+
+  document.getElementById('from-season').textContent = D.fromSeason;
+  document.getElementById('to-season').textContent = D.toSeason;
+
+  const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2);
+  document.getElementById('formula').innerHTML =
+    `예측 = <b>${sgn(C[0])}</b> <b>${sgn(C[1])}</b> × 최근 3시즌 가중평균 ` +
+    `<b>${sgn(C[2])}</b> × 나이델타(${M.ageSplit}세 미만) ` +
+    `<b>${sgn(C[3])}</b> × 나이델타(${M.ageSplit}세 이상)`;
+
+  document.getElementById('coef-note').textContent =
+    `${C[2].toFixed(2)} 대 ${C[3].toFixed(2)}`;
+
+  document.getElementById('scores').innerHTML = [
+    ['평균 오차 (MAE)', `<span class="was">${M.baselineMae}</span><span class="arrow">→</span>${M.mae}`,
+     '작년 성적 그대로 → 이 모델'],
+    ['실제와의 상관', `<span class="was">${M.baselineCorr}</span><span class="arrow">→</span>${M.corr}`,
+     '1에 가까울수록 좋음'],
+    ['검증 표본', M.testSize.toLocaleString('en-US'), '2016-17 이후 선수-시즌'],
+    ['예측 대상', D.players.length.toLocaleString('en-US'), `${D.toSeason} 시즌 선수`],
+  ].map(([k, v, s]) => `<div class="score-cell">
+      <div class="k">${k}</div><div class="v">${v}</div><div class="sub">${s}</div>
+    </div>`).join('');
+
+  // ── 나이 곡선 ──
+  (function drawCurve() {
+    const pts = D.agingCurve;
+    const W = 760, H = 210, L = 34, R = 12, T = 14, B = 26;
+    const xs = pts.map(p => p.age);
+    const ys = pts.map(p => p.delta);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const pad = 0.4;
+    const y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+    const X = a => L + (a - x0) / (x1 - x0) * (W - L - R);
+    const Y = v => T + (y1 - v) / (y1 - y0) * (H - T - B);
+
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.age).toFixed(1)},${Y(p.delta).toFixed(1)}`).join('');
+    const zeroY = Y(0);
+    const area = line + `L${X(x1).toFixed(1)},${zeroY.toFixed(1)}L${X(x0).toFixed(1)},${zeroY.toFixed(1)}Z`;
+
+    // 정점: 델타가 양수에서 음수로 바뀌는 나이
+    let peak = pts[0].age;
+    for (let i = 1; i < pts.length; i++) {
+      if (pts[i - 1].delta >= 0 && pts[i].delta < 0) { peak = pts[i].age; break; }
+    }
+
+    const ticks = [];
+    for (let a = Math.ceil(x0 / 5) * 5; a <= x1; a += 5) {
+      ticks.push(`<line class="gridline" x1="${X(a)}" y1="${T}" x2="${X(a)}" y2="${H - B}"/>
+                  <text x="${X(a)}" y="${H - 8}" text-anchor="middle">${a}세</text>`);
+    }
+    const ylab = [Math.ceil(y0), 0, Math.floor(y1)].filter((v, i, s) => s.indexOf(v) === i);
+
+    document.getElementById('curve').innerHTML = `
+      ${ticks.join('')}
+      <clipPath id="above"><rect x="${L}" y="${T}" width="${W - L - R}" height="${Math.max(0, zeroY - T)}"/></clipPath>
+      <clipPath id="below"><rect x="${L}" y="${zeroY}" width="${W - L - R}" height="${Math.max(0, H - B - zeroY)}"/></clipPath>
+      <path class="area-up" d="${area}" clip-path="url(#above)"/>
+      <path class="area-dn" d="${area}" clip-path="url(#below)"/>
+      <line class="zero" x1="${L}" y1="${zeroY}" x2="${W - R}" y2="${zeroY}"/>
+      ${ylab.map(v => `<text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${v > 0 ? '+' : ''}${v}</text>`).join('')}
+      <path class="line" d="${line}"/>
+      <circle class="peak" cx="${X(peak)}" cy="${zeroY}" r="3.5"/>
+      <text x="${X(peak)}" y="${zeroY - 9}" text-anchor="middle" style="fill:var(--ink)">정점 ${peak}세</text>`;
+  })();
+
+  // ── 표 ──
+  const tbody = document.getElementById('tbody');
+  const search = document.getElementById('search');
+  const sortSel = document.getElementById('sort');
+
+  function render() {
+    const q = search.value.trim().toLowerCase();
+    let rows = D.players.filter(p =>
+      !q || p.player.toLowerCase().includes(q) || (p.team || '').toLowerCase().includes(q));
+
+    const mode = sortSel.value;
+    const cmp = {
+      'projected': (a, b) => b.projected - a.projected,
+      'change-up': (a, b) => b.change - a.change,
+      'change-dn': (a, b) => a.change - b.change,
+      'current': (a, b) => b.current - a.current,
+      'age': (a, b) => a.nextAge - b.nextAge || b.projected - a.projected,
+    }[mode];
+    rows = rows.slice().sort(cmp);
+
+    document.getElementById('count-label').textContent = `${rows.length}명 표시`;
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">조건에 맞는 선수가 없습니다.</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map((p, i) => {
+      const cls = p.change > 0.5 ? 'up' : p.change < -0.5 ? 'dn' : 'flat';
+      const arrow = p.change > 0.5 ? '▲' : p.change < -0.5 ? '▼' : '–';
+      return `<tr>
+        <td class="rank">${i + 1}</td>
+        <td class="player-name">${p.player}</td>
+        <td><span class="team-badge">${p.team ?? ''}</span></td>
+        <td class="age-cell">${p.age} → ${p.nextAge}</td>
+        <td>${p.current.toFixed(1)}</td>
+        <td class="proj">${p.projected.toFixed(1)}</td>
+        <td class="chg ${cls}">${arrow} ${p.change > 0 ? '+' : ''}${p.change.toFixed(1)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  search.addEventListener('input', render);
+  sortSel.addEventListener('change', render);
+  render();
+})();
+</script>

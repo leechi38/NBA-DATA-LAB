@@ -2,35 +2,35 @@
  "variants": [
   {
    "label": "기존 (신인 전원 같은 값)",
-   "maeN": 2.74,
-   "maeW": 6.72,
-   "corrD": 0.545,
-   "corrN": 0.685,
-   "charlotte2026": -10.5
+   "maeN": 2.72,
+   "maeW": 6.67,
+   "corrD": 0.549,
+   "corrN": 0.689,
+   "charlotte2026": -10.8
   },
   {
    "label": "+ 드래프트 순번",
-   "maeN": 2.73,
-   "maeW": 6.7,
-   "corrD": 0.548,
-   "corrN": 0.687,
-   "charlotte2026": -10.6
+   "maeN": 2.71,
+   "maeW": 6.65,
+   "corrD": 0.552,
+   "corrN": 0.691,
+   "charlotte2026": -10.9
   },
   {
    "label": "+ 500분 미만 기록",
-   "maeN": 2.73,
-   "maeW": 6.72,
-   "corrD": 0.545,
-   "corrN": 0.685,
-   "charlotte2026": -10.4
+   "maeN": 2.72,
+   "maeW": 6.67,
+   "corrD": 0.549,
+   "corrN": 0.689,
+   "charlotte2026": -10.7
   },
   {
    "label": "+ 로스터 연속성",
-   "maeN": 2.74,
-   "maeW": 6.71,
-   "corrD": 0.548,
-   "corrN": 0.684,
-   "charlotte2026": -10.4
+   "maeN": 2.72,
+   "maeW": 6.66,
+   "corrD": 0.551,
+   "corrN": 0.688,
+   "charlotte2026": -10.7
   }
  ],
  "pickBins": [

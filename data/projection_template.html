@@ -1,12 +1,16 @@
+<meta charset="utf-8">
 <title>다음 시즌 예측 — NBA DATA LAB</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 __BASE_CSS__
 
   /* ── 모델 요약 ─────────────────────────────────────────── */
   .model { margin: 22px 0 26px; border-block: 1px solid var(--rule); padding: 16px 0; }
   .formula {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.92rem; letter-spacing: 0.01em;
+    font-size: 0.92rem; letter-spacing: 0.01em;
     padding: 9px 0 11px; border-bottom: 1px solid var(--rule); margin-bottom: 14px;
     overflow-x: auto; white-space: nowrap;
   }
@@ -16,11 +20,11 @@ __BASE_CSS__
             gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); }
   .score-cell { background: var(--paper); padding: 12px 4px 14px; }
   .score-cell .k {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.66rem;
-    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+    font-size: 0.66rem;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3);
   }
   .score-cell .v {
-    font-family: Oswald, system-ui, sans-serif; font-size: 1.5rem; font-weight: 600;
+    font-size: 1.5rem; font-weight: 600;
     line-height: 1.15; font-variant-numeric: tabular-nums;
   }
   .score-cell .v .was { color: var(--ink-3); font-size: 1rem; }
@@ -30,8 +34,8 @@ __BASE_CSS__
   /* ── 기량 구간별 회귀율 ────────────────────────────────── */
   .tier-block { margin-top: 18px; }
   .tier-block h3 {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.85rem;
-    letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 3px; font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 3px; font-weight: 500;
   }
   .tier-block p { margin: 0 0 10px; font-size: 0.82rem; color: var(--ink-2); max-width: 64ch; }
   .tiers { border-top: 1px solid var(--rule); }
@@ -44,19 +48,19 @@ __BASE_CSS__
   .tier-row .tbar { height: 8px; background: var(--surface-sunk); border-radius: 1px; }
   .tier-row .tfill { display: block; height: 100%; background: var(--accent); border-radius: 1px; }
   .tier-row .tval {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.92rem; font-weight: 500;
+    font-size: 0.92rem; font-weight: 500;
     text-align: right; font-variant-numeric: tabular-nums;
   }
 
   details.notes { margin-top: 14px; }
   details.notes > summary {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.8rem;
-    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2);
     cursor: pointer; padding: 7px 0; list-style: none;
   }
   details.notes > summary::-webkit-details-marker { display: none; }
-  details.notes > summary::before { content: "▸ "; color: var(--accent); }
-  details.notes[open] > summary::before { content: "▾ "; }
+  details.notes > summary::before { content: "👉 "; font-family: Tossface; }
+  details.notes[open] > summary::before { content: "👇 "; }
   details.notes > summary:hover { color: var(--accent); }
   .caveat { margin: 4px 0 0; font-size: 0.83rem; color: var(--ink-2); line-height: 1.75; }
   .caveat strong { color: var(--ink); font-weight: 600; }
@@ -64,15 +68,15 @@ __BASE_CSS__
   /* ── 나이 곡선 ─────────────────────────────────────────── */
   .curve-wrap { margin: 26px 0; border-top: 2px solid var(--rule-strong); padding-top: 12px; }
   .curve-wrap h2 {
-    font-family: Oswald, system-ui, sans-serif; font-size: 1.05rem; margin: 0 0 2px;
+    font-size: 1.05rem; margin: 0 0 2px;
   }
   .curve-wrap p { margin: 0 0 10px; font-size: 0.84rem; color: var(--ink-2); max-width: 66ch; }
   svg.curve { width: 100%; height: auto; display: block; overflow: visible; }
   .curve .gridline { stroke: var(--rule); stroke-width: 1; }
   .curve .zero { stroke: var(--ink-3); stroke-width: 1; }
-  .curve text { fill: var(--ink-3); font-size: 10px; font-family: Oswald, system-ui, sans-serif; }
-  .curve .area-up { fill: var(--pos); fill-opacity: 0.16; }
-  .curve .area-dn { fill: var(--accent); fill-opacity: 0.16; }
+  .curve text { fill: var(--ink-3); font-size: 10px; }
+  .curve .area-up { fill: var(--pos-wash); }
+  .curve .area-dn { fill: var(--neg-wash); }
   .curve .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
   .curve .peak { fill: var(--ink); }
 
@@ -82,12 +86,11 @@ __BASE_CSS__
   .rank { color: var(--ink-3); width: 30px; font-variant-numeric: tabular-nums; }
   .player-name { font-weight: 600; }
   .team-badge {
-    font-family: Oswald, system-ui, sans-serif;
-    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.06em;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.04em;
   }
-  .age-cell { font-family: Oswald, system-ui, sans-serif; color: var(--ink-2); font-size: 0.82rem; }
+  .age-cell { color: var(--ink-2); font-size: 0.82rem; }
   .proj {
-    font-family: Oswald, system-ui, sans-serif; font-size: 1.02rem; font-weight: 600;
+    font-size: 1.02rem; font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
   .chg { font-variant-numeric: tabular-nums; font-weight: 500; }
@@ -104,12 +107,13 @@ __BASE_CSS__
       <p>지난 세 시즌 기록과 나이에 따른 성장·노화 추세로 다음 시즌 NDL Score를 예측합니다.
          아직 일어나지 않은 일이므로, 맞고 틀림은 다음 시즌이 끝나면 드러납니다.</p>
       <div class="nav-links">
-        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__HOME_URL__"><span class="tf">🏠</span> 홈</a>
         <a class="nav-link" href="__STATS_URL__">시즌 스탯</a>
         <a class="nav-link" href="__NDL_URL__">NDL Score</a>
         <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
         <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
         <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
+        <a class="nav-link" href="__MODEL_URL__">예측 모델</a>
       </div>
     </header>
 
@@ -146,10 +150,13 @@ __BASE_CSS__
           선수들로만 계산됩니다. 못한 선수는 표본에서 빠지므로, 특히 젊은 나이대의 상승폭이
           부풀려집니다(생존 편향). 그래서 젊은 구간과 30세 이상 구간의 계수를 따로 추정했고,
           결과는 <strong id="coef-note">—</strong>로 젊은 구간을 실제로 덜 신뢰합니다.<br/>
+          <strong>5:4:3도 데이터에 물었습니다.</strong> 처음 정한 가중치는 직전 시즌 비중이 42%였는데,
+          "직전 시즌 − 가중평균" 항을 더해 데이터가 고르게 하자 <strong id="recency-note">—</strong>로
+          직전 시즌 비중이 커졌습니다. 오차는 나이대·점수대 모든 구간에서 줄었습니다.<br/>
           <strong>검증 방식</strong>: 계수를 2015년까지의 시즌에서만 학습하고, 이후 시즌으로
           시험했습니다. 시즌 단위로 갈라 정보 누수를 막았습니다.<br/>
           <strong>한계</strong>: 부상·이적·역할 변화·신인은 반영하지 못합니다. 직전 세 시즌의
-          기록과 나이만 씁니다. 평균 4.2점 오차는 <strong>순위를 크게 뒤집기에 충분한 크기</strong>이므로,
+          기록과 나이만 씁니다. 평균 4.1점 오차는 <strong>순위를 크게 뒤집기에 충분한 크기</strong>이므로,
           개별 선수의 예측값보다 전체적인 추세로 읽는 편이 맞습니다.
         </p>
       </details>
@@ -202,11 +209,14 @@ __BASE_CSS__
   const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2);
   document.getElementById('formula').innerHTML =
     `예측 = <b>${sgn(C[0])}</b> <b>기량 구간별 기울기</b> × 최근 3시즌 가중평균 ` +
+    `<b>${sgn(M.recencyCoef)}</b> × (직전 시즌 − 가중평균) ` +
     `<b>${sgn(C[C.length - 2])}</b> × 나이델타(${M.ageSplit}세 미만) ` +
     `<b>${sgn(C[C.length - 1])}</b> × 나이델타(${M.ageSplit}세 이상)`;
 
   document.getElementById('coef-note').textContent =
     `${C[C.length - 2].toFixed(2)} 대 ${C[C.length - 1].toFixed(2)}`;
+  document.getElementById('recency-note').textContent =
+    M.recencyWeights.map(w => Math.round(w * 100)).join(':');
 
   // 기량 구간별 평균회귀율 — 이 페이지에서 제일 설명이 필요한 부분
   document.getElementById('tiers').innerHTML = M.tiers.map(t => {
@@ -298,7 +308,7 @@ __BASE_CSS__
     }
     tbody.innerHTML = rows.map((p, i) => {
       const cls = p.change > 0.5 ? 'up' : p.change < -0.5 ? 'dn' : 'flat';
-      const arrow = p.change > 0.5 ? '▲' : p.change < -0.5 ? '▼' : '–';
+      const arrow = p.change > 0.5 ? '<span class="tf">📈</span>' : p.change < -0.5 ? '<span class="tf">📉</span>' : '–';
       return `<tr>
         <td class="rank">${i + 1}</td>
         <td class="player-name">${p.player}</td>

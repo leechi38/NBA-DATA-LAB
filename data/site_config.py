@@ -29,6 +29,7 @@ ARTIFACT_URLS = {
     "__SCATTER_URL__": "https://claude.ai/code/artifact/8d314bec-60df-47a7-a230-ec902e645663",
     "__GAME_URL__": "https://claude.ai/code/artifact/7e46c135-6b01-4457-8702-1d11158912d0",
     "__PROJ_URL__": "https://nba-data-lab.vercel.app/projection",
+    "__MODEL_URL__": "https://nba-data-lab.vercel.app/model",
 }
 
 # vercel.json의 cleanUrls 설정으로 .html 확장자 없이 접근한다.
@@ -40,6 +41,7 @@ WEB_URLS = {
     "__SCATTER_URL__": "/scatter",
     "__GAME_URL__": "/game",
     "__PROJ_URL__": "/projection",
+    "__MODEL_URL__": "/model",
 }
 
 # 템플릿 → 웹 배포 시 파일명
@@ -51,4 +53,5 @@ WEB_FILENAMES = {
     "scatter": "scatter.html",
     "game": "game.html",
     "projection": "projection.html",
+    "model": "model.html",
 }

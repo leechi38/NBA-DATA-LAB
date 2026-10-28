@@ -1,12 +1,16 @@
-﻿<title>NDL Score — NBA DATA LAB 선수 평가</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+﻿<meta charset="utf-8">
+<title>NDL Score — NBA DATA LAB 선수 평가</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 __BASE_CSS__
 
   /* ── 산식과 방법 설명 ──────────────────────────────────── */
   .methodology { margin: 22px 0 26px; border-block: 1px solid var(--rule); padding: 16px 0; }
   .formula {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.95rem; letter-spacing: 0.01em;
+    font-size: 0.95rem; letter-spacing: 0.01em;
     padding: 9px 0 11px; border-bottom: 1px solid var(--rule); margin-bottom: 12px;
   }
   .formula b { color: var(--accent); font-weight: 600; }
@@ -20,7 +24,7 @@ __BASE_CSS__
   }
   .comp-item .cname { font-weight: 600; }
   .comp-item .cw {
-    font-family: Oswald, system-ui, sans-serif; color: var(--accent);
+    color: var(--accent);
     font-variant-numeric: tabular-nums; text-align: right; font-weight: 500;
   }
   .comp-item .cdef { color: var(--ink-2); font-size: 0.8rem; }
@@ -28,13 +32,13 @@ __BASE_CSS__
 
   details.notes { margin-top: 14px; }
   details.notes > summary {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.82rem;
-    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+    font-size: 0.82rem;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2);
     cursor: pointer; padding: 7px 0; list-style: none;
   }
   details.notes > summary::-webkit-details-marker { display: none; }
-  details.notes > summary::before { content: "▸ "; color: var(--accent); }
-  details.notes[open] > summary::before { content: "▾ "; }
+  details.notes > summary::before { content: "👉 "; font-family: Tossface; }
+  details.notes[open] > summary::before { content: "👇 "; }
   details.notes > summary:hover { color: var(--accent); }
   .caveat { margin: 4px 0 0; font-size: 0.83rem; color: var(--ink-2); line-height: 1.75; }
   .caveat strong { color: var(--ink); font-weight: 600; }
@@ -49,12 +53,11 @@ __BASE_CSS__
   .player-name a { color: inherit; text-decoration: none; }
   .player-name a:hover { color: var(--accent); text-decoration: underline; }
   .team-badge {
-    font-family: Oswald, system-ui, sans-serif;
-    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.06em;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.04em;
   }
   .score-cell { display: flex; align-items: center; gap: 9px; justify-content: flex-end; }
   .score-num {
-    font-family: Oswald, system-ui, sans-serif; font-size: 1.02rem; font-weight: 600;
+    font-size: 1.02rem; font-weight: 600;
     min-width: 34px; text-align: right;
   }
   .meter-track { width: 84px; height: 6px; border-radius: 1px; background: var(--surface-sunk); overflow: hidden; }
@@ -77,7 +80,7 @@ __BASE_CSS__
   .div-val { font-variant-numeric: tabular-nums; color: var(--ink-2); }
   .weight-note { margin: 10px 12px 0 0; font-size: 0.78rem; color: var(--ink-3); line-height: 1.55; }
   .low-sample-badge {
-    font-family: Oswald, system-ui, sans-serif; font-size: 0.64rem; letter-spacing: 0.05em;
+    font-size: 0.64rem; letter-spacing: 0.04em;
     color: var(--ink-3); border: 1px solid var(--rule); border-radius: 2px;
     padding: 1px 5px; margin-left: 5px; white-space: nowrap;
   }
@@ -95,12 +98,13 @@ __BASE_CSS__
       <h1>NDL Score</h1>
       <p>정규시즌 기록으로 만든 자체 종합 평가 지표입니다. 5개 축을 표준화(z-score)해 가중합한 뒤 0~100으로 환산했고, 평균적인 선수가 50점입니다. 표에서 선수를 클릭하면 어느 축에서 점수가 왔는지 펼쳐 볼 수 있습니다.</p>
       <div class="nav-links">
-        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__HOME_URL__"><span class="tf">🏠</span> 홈</a>
         <a class="nav-link" href="__STATS_URL__">스탯 정리</a>
         <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
         <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
         <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
         <a class="nav-link" href="__PROJ_URL__">다음 시즌 예측</a>
+        <a class="nav-link" href="__MODEL_URL__">예측 모델</a>
       </div>
     </header>
 

@@ -1,5 +1,9 @@
-﻿<title>NBA DATA LAB</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+﻿<meta charset="utf-8">
+<title>NBA DATA LAB</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 __BASE_CSS__
 
@@ -9,8 +13,7 @@ __BASE_CSS__
 /* ── 제호 ─────────────────────────────────────────────── */
 .masthead { border-bottom: 3px solid var(--rule-strong); padding-bottom: 16px; }
 .masthead .kicker {
-  font-family: Oswald, system-ui, sans-serif;
-  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+  font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--accent); margin-bottom: 8px;
 }
 .masthead h1 {
@@ -34,14 +37,13 @@ __BASE_CSS__
   font-variant-numeric: tabular-nums; margin-bottom: 5px;
 }
 .scale-cell .stat-label {
-  font-family: Oswald, system-ui, sans-serif;
-  font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3);
 }
 
 /* ── 히어로: 척도 상한에 닿은 시즌 ────────────────────── */
 .ceiling { margin-top: 40px; }
 .ceiling-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.ceiling-head h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.35rem; font-weight: 600; margin: 0; }
+.ceiling-head h2 { font-size: 1.35rem; font-weight: 600; margin: 0; }
 .ceiling .note { margin: 0 0 16px; font-size: 0.88rem; color: var(--ink-2); max-width: 62ch; }
 .ceiling .note b { color: var(--accent); font-weight: 600; }
 
@@ -53,24 +55,24 @@ __BASE_CSS__
   padding: 13px 2px; border-bottom: 1px solid var(--rule);
 }
 .ceiling-row .yr {
-  font-family: Oswald, system-ui, sans-serif; font-size: 0.86rem;
+  font-size: 0.86rem;
   color: var(--ink-3); font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
 }
 .ceiling-row .who { min-width: 0; }
 .ceiling-row .nm { font-weight: 600; font-size: 1rem; }
 .ceiling-row .tm {
-  font-family: Oswald, system-ui, sans-serif; font-size: 0.74rem;
-  letter-spacing: 0.08em; color: var(--ink-3); margin-left: 8px;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em; color: var(--ink-3); margin-left: 8px;
 }
 .ceiling-row .line { font-size: 0.82rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .ceiling-row .score {
-  font-family: Oswald, system-ui, sans-serif; font-size: 1.35rem; font-weight: 600;
+  font-size: 1.35rem; font-weight: 600;
   color: var(--accent); font-variant-numeric: tabular-nums;
 }
 
 /* ── 최신 시즌 상위권 ─────────────────────────────────── */
 .current { margin-top: 40px; }
-.current h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.1rem; margin: 0 0 12px; }
+.current h2 { font-size: 1.1rem; margin: 0 0 12px; }
 .bars { border-top: 2px solid var(--rule-strong); }
 .bar-row {
   display: grid; grid-template-columns: 1fr 3.2rem;
@@ -79,19 +81,19 @@ __BASE_CSS__
 }
 .bar-row .label { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .bar-row .nm { font-weight: 500; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-row .tm { font-family: Oswald, system-ui, sans-serif; font-size: 0.7rem; letter-spacing: 0.08em; color: var(--ink-3); }
+.bar-row .tm { font-size: 0.7rem; letter-spacing: 0.04em; color: var(--ink-3); }
 .bar-row .track { position: relative; height: 100%; }
 .bar-row .meter { height: 7px; background: var(--surface-sunk); border-radius: 1px; margin-top: 5px; }
 .bar-row .fill { height: 100%; background: var(--accent); border-radius: 1px; }
 .bar-row .val {
-  font-family: Oswald, system-ui, sans-serif; font-size: 1rem; font-weight: 500;
+  font-size: 1rem; font-weight: 500;
   text-align: right; font-variant-numeric: tabular-nums;
 }
 .bar-grid { display: grid; grid-template-columns: minmax(0, 13rem) 1fr; gap: 12px; align-items: center; }
 
 /* ── 도구 목록 ────────────────────────────────────────── */
 .tools { margin-top: 44px; }
-.tools h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.1rem; margin: 0 0 12px; }
+.tools h2 { font-size: 1.1rem; margin: 0 0 12px; }
 .tool-list { border-top: 2px solid var(--rule-strong); }
 .tool {
   display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; align-items: baseline;
@@ -100,18 +102,19 @@ __BASE_CSS__
 }
 .tool:hover { background: var(--accent-soft); }
 .tool:hover .tool-name { color: var(--accent); }
-.tool:hover .arrow { transform: translateX(3px); color: var(--accent); }
+.tool:hover .arrow { transform: translateX(3px); }
 .tool-name {
-  font-family: Oswald, system-ui, sans-serif; font-size: 1.12rem; font-weight: 500;
+  font-size: 1.12rem; font-weight: 500;
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
 }
 .tool-name .span {
-  font-size: 0.68rem; letter-spacing: 0.08em; color: var(--ink-3);
+  font-size: 0.68rem; letter-spacing: 0.04em; color: var(--ink-3);
   border: 1px solid var(--rule); border-radius: 2px; padding: 1px 6px;
   font-variant-numeric: tabular-nums;
 }
 .tool p { grid-column: 1 / -1; margin: 0; font-size: 0.87rem; color: var(--ink-2); max-width: 70ch; }
-.arrow { font-size: 1.1rem; color: var(--ink-3); transition: transform 0.15s ease, color 0.15s ease; }
+.arrow { font-size: 1rem; transition: transform 0.15s ease; }
+.tool-icon { font-size: 1.05em; margin-right: 2px; }
 
 @media (max-width: 560px) {
   .ceiling-row { grid-template-columns: 3.6rem 1fr; row-gap: 4px; }
@@ -155,34 +158,39 @@ __BASE_CSS__
       <h2>둘러보기</h2>
       <div class="tool-list">
         <a class="tool" href="__STATS_URL__">
-          <span class="tool-name">시즌별 스탯 <span class="span">77 시즌</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">📊</span>시즌별 스탯 <span class="span">77 시즌</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>시즌을 골라 선수들의 경기당 기록과 고급 스탯(TS%, PER, WS, BPM)을 검색·정렬합니다.</p>
         </a>
         <a class="tool" href="__NDL_URL__">
-          <span class="tool-name">NDL Score <span class="span">77 시즌</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🏀</span>NDL Score <span class="span">77 시즌</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>5개 축으로 분해되는 자체 평가 지표. 선수를 클릭하면 어느 축에서 점수가 왔는지 보입니다.</p>
         </a>
         <a class="tool" href="__PLAYER_URL__">
-          <span class="tool-name">선수 커리어 <span class="span">4,913 명</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">📈</span>선수 커리어 <span class="span">4,913 명</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>선수를 검색해 득점·리바운드·어시스트 등 스탯별 커리어 추이를 그래프로 봅니다.</p>
         </a>
         <a class="tool" href="__SCATTER_URL__">
-          <span class="tool-name">선수 포지셔닝 <span class="span">77 시즌</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🎯</span>선수 포지셔닝 <span class="span">77 시즌</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>두 스탯을 축으로 놓고 선수들이 서로 어디에 있는지 산점도로 비교합니다.</p>
         </a>
         <a class="tool" href="__GAME_URL__">
-          <span class="tool-name">시즌 시뮬레이션 <span class="span">1996–97 ~</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🎮</span>시즌 시뮬레이션 <span class="span">1996–97 ~</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>실제 기록으로 만든 능력치로 가상 경기를 돌립니다. 팀을 직접 드래프트할 수도 있습니다.</p>
         </a>
         <a class="tool" href="__PROJ_URL__">
-          <span class="tool-name">다음 시즌 예측 <span class="span">2026–27</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🔮</span>다음 시즌 예측 <span class="span">2026–27</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>나이에 따른 성장·노화 추세로 다음 시즌 점수를 예측합니다. 아직 일어나지 않은 일이라, 맞고 틀림은 시즌이 끝나면 드러납니다.</p>
+        </a>
+        <a class="tool" href="__MODEL_URL__">
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🏆</span>예측 모델 <span class="span">2026–27</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
+          <p>선수 예측을 로스터 단위로 모아 다음 시즌 팀 순위를 예측합니다. 지난 11개 시즌으로 얼마나 맞았는지, 무엇을 넣어보고 뺐는지도 함께 적었습니다.</p>
         </a>
       </div>
     </section>

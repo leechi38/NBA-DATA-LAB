@@ -2,6 +2,7 @@
 
     예측 = b0 + (기량 구간별 기울기)×(최근 3시즌 5:4:3 가중평균)
               + b×(직전 시즌 − 가중평균)
+              + b×(나이 델타, 30세 미만)×(기량: 55점 위 10점 단위, 2시즌 이상만)
               + b×(나이 델타, 30세 미만) + b×(나이 델타, 30세 이상)
 
 평균회귀를 하나의 기울기로 두면 모든 선수에게 같은 비율을 적용하게 된다. 실제로는
@@ -25,7 +26,7 @@ mp/(mp+2000) 꼴로 손수 정했는데, 점수대별 편향을 재보니 80점�
 
 나이 델타를 두 항으로 나눈 것도 같은 이유다. 젊은 구간의 곡선은 생존 편향으로
 부풀려져 있는데(다음 시즌에 리그를 떠난 선수가 표본에서 빠진다), 얼마나 덜
-믿을지를 손으로 정하는 대신 계수가 정하게 했다. 결과는 1.14 대 1.65로,
+믿을지를 손으로 정하는 대신 계수가 정하게 했다. 결과는 0.87 대 1.42로,
 젊은 구간을 실제로 덜 신뢰한다.
 
 5:4:3도 손으로 정한 상수였다. '직전 시즌 − 가중평균' 항을 하나 더해 시즌별 비중을
@@ -35,8 +36,14 @@ MAE 4.13 → 4.08(부트스트랩 95% 신뢰구간 [+0.015, +0.082])이고, 나�
 가린 것이 아니다. 출전시간·경기수·선발 비율·경력 연차도 같은 방식으로 시험했으나
 0.01 안팎이라 넣지 않았다.
 
+나이 곡선은 모든 젊은 선수의 평균이라 잘하는 유망주의 성장을 덜 준다. 22세 이하·기량 60점
+이상은 실제가 예측보다 1.6점 높았다. 젊은 구간 나이델타에 기량을 곱한 항을 더하자(2시즌
+이상만) MAE 4.083 → 4.065, 신뢰구간 [+0.010, +0.028], 그 그룹 편향 +1.62 → +0.65.
+같은 항이 26~29세 스타는 조금 더 내리는데, 최근 시험 구간에서 이 그룹은 실제가 예측보다
+2.6점 낮았던 터라 방향이 맞는다. 급등한 해를 기량별로 더 믿게 하는 항은 계수가 0이었다.
+
 홀드아웃(2016-17년~, 2,576개) 성능
-    MAE  4.61 → 4.08     상관 0.730 → 0.764     (기준: 작년 성적 그대로)
+    MAE  4.61 → 4.07     상관 0.730 → 0.766     (기준: 작년 성적 그대로)
 """
 import json
 from collections import defaultdict
@@ -54,6 +61,7 @@ AGE_SPLIT = 30        # 나이 델타를 두 항으로 가르는 경계
 TRAIN_END = 2015      # 계수 검증용 학습 구간 끝
 MIN_AGE_PAIRS = 30    # 나이 델타를 신뢰할 최소 표본
 KNOTS = [50, 60, 70, 80]   # 기량 구간의 마디
+GROWTH_FROM = 55      # 이 점수 위부터 나이 성장분을 기량에 비례해 더 준다 (아래 features 참고)
 
 
 def load():
@@ -115,11 +123,17 @@ def features(rows, curve, pid, year):
     cur = past[0][0]
     raw_d = curve.get(cur["age"], 0.0)
     old = cur["age"] >= AGE_SPLIT
-    # [절편, wavg, 마디별 추가 기울기…, 직전 시즌 편차, 나이델타(젊음), 나이델타(30세+)]
+    # 나이 곡선은 모든 선수의 평균이라, 결국 자리 잡지 못하는 선수까지 섞여 있다.
+    # 잘하는 젊은 선수는 그보다 가파르게 큰다. 젊은 구간 나이델타에 기량(55점 위로
+    # 10점마다 1)을 곱한 항을 더해, 얼마나 더 줄지는 계수가 정하게 한다. 한 시즌만
+    # 뛴 신인은 뺀다. 첫해 고득점에는 운이 섞여 최근에는 2년차에 오히려 내려왔다.
+    talent = max(0.0, (wavg - GROWTH_FROM) / 10) if len(past) >= 2 else 0.0
+    young_d = 0.0 if old else raw_d
+    # [절편, wavg, 마디별 추가 기울기…, 직전 시즌 편차, 유망주 성장, 나이델타(젊음), 나이델타(30세+)]
     # 나이델타 두 항은 끝에 둔다. 페이지가 계수 배열의 끝 두 개를 나이델타로 읽는다.
     x = ([1.0, wavg] + [max(0.0, wavg - k) for k in KNOTS]
-         + [cur["ndl"] - wavg]
-         + [0.0 if old else raw_d, raw_d if old else 0.0])
+         + [cur["ndl"] - wavg, young_d * talent]
+         + [young_d, raw_d if old else 0.0])
     return {
         "x": x, "wavg": wavg, "delta": raw_d, "cur": cur,
         "seasons": len(past), "mp": sum(r["mp"] for r, _ in past),
@@ -136,6 +150,7 @@ def slopes_of(coef):
 
 
 RECENCY_IDX = 2 + len(KNOTS)   # 계수 배열에서 직전 시즌 편차 항의 위치
+GROWTH_IDX = 3 + len(KNOTS)    # 유망주 성장 항의 위치
 
 
 def recency_weights(coef, tier=2):
@@ -223,6 +238,8 @@ def main():
     rw = recency_weights(coef)
     print(f"\n직전 시즌 편차 계수 {b[RECENCY_IDX]:.3f} → 실효 시즌 비중(60점대 선수) "
           + ":".join(f"{w:.0%}" for w in rw) + f"  (5:4:3은 {5/12:.0%}:{4/12:.0%}:{3/12:.0%})")
+    print(f"유망주 성장 계수 {b[GROWTH_IDX]:.3f} → 기량 {GROWTH_FROM}점 위 10점마다 젊은 구간 "
+          f"성장분이 +{b[GROWTH_IDX] / b[-2]:.0%}씩")
     print(f"나이 델타 계수: 30세 미만 {b[-2]:.2f} / 30세 이상 {b[-1]:.2f}\n")
 
     last_year = max(y for _, y in rows)
@@ -257,6 +274,7 @@ def main():
             **report, "finalCoef": b, "ageSplit": AGE_SPLIT, "knots": KNOTS,
             "recencyCoef": b[RECENCY_IDX],
             "recencyWeights": [round(float(w), 3) for w in rw],
+            "growthCoef": b[GROWTH_IDX], "growthFrom": GROWTH_FROM,
             "tiers": [{"label": lab, "slope": round(float(s), 3),
                        "shrink": round((1 - float(s)) * 100, 1)}
                       for lab, s in zip(labels, sl)],

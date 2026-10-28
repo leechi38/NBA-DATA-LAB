@@ -6,14 +6,14 @@
    "maeW": 6.72,
    "corrD": 0.545,
    "corrN": 0.685,
-   "charlotte2026": -10.4
+   "charlotte2026": -10.5
   },
   {
    "label": "+ 드래프트 순번",
    "maeN": 2.73,
    "maeW": 6.7,
    "corrD": 0.548,
-   "corrN": 0.686,
+   "corrN": 0.687,
    "charlotte2026": -10.6
   },
   {
@@ -27,9 +27,9 @@
   {
    "label": "+ 로스터 연속성",
    "maeN": 2.74,
-   "maeW": 6.72,
+   "maeW": 6.71,
    "corrD": 0.548,
-   "corrN": 0.683,
+   "corrN": 0.684,
    "charlotte2026": -10.4
   }
  ],

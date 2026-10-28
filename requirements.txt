@@ -2,3 +2,5 @@ pandas
 numpy
 scipy
 lxml
+pillow      # README 데모 GIF (make_demo_gif.py)
+markdown    # 상세 보고서 PDF (build_report.py)

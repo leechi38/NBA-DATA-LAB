@@ -1,5 +1,9 @@
-﻿<title>NBA DATA LAB — 시즌별 스탯</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+﻿<meta charset="utf-8">
+<title>NBA DATA LAB — 시즌별 스탯</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 __BASE_CSS__
 
@@ -12,12 +16,10 @@ __BASE_CSS__
   }
   .tile { background: var(--paper); padding: 13px 14px 15px; }
   .tile .tile-label {
-    font-family: Oswald, system-ui, sans-serif;
     font-size: 0.68rem; color: var(--ink-3);
-    text-transform: uppercase; letter-spacing: 0.1em;
+    text-transform: uppercase; letter-spacing: 0.04em;
   }
   .tile .tile-value {
-    font-family: Oswald, system-ui, sans-serif;
     font-size: 1.7rem; font-weight: 600; line-height: 1.1;
     margin-top: 3px; font-variant-numeric: tabular-nums;
   }
@@ -36,8 +38,7 @@ __BASE_CSS__
   .player-name a { color: inherit; text-decoration: none; }
   .player-name a:hover { color: var(--accent); text-decoration: underline; }
   .team-badge {
-    font-family: Oswald, system-ui, sans-serif;
-    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.06em;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.04em;
   }
 </style>
 
@@ -48,12 +49,13 @@ __BASE_CSS__
       <h1>시즌별 스탯</h1>
       <p>선수 개인 기록(경기당 평균 + 고급 스탯)입니다. 상단에서 시즌을 고를 수 있고, 트레이드된 선수는 시즌 합산으로 통합했습니다. 선수명을 클릭하면 커리어 추이로 이동합니다.</p>
       <div class="nav-links">
-        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__HOME_URL__"><span class="tf">🏠</span> 홈</a>
         <a class="nav-link" href="__NDL_URL__">NDL Score</a>
         <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
         <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
         <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
         <a class="nav-link" href="__PROJ_URL__">다음 시즌 예측</a>
+        <a class="nav-link" href="__MODEL_URL__">예측 모델</a>
       </div>
     </header>
 
@@ -166,8 +168,8 @@ __BASE_CSS__
       th.textContent = col.label;
       if (col.key === sortKey) {
         const arrow = document.createElement('span');
-        arrow.className = 'arrow';
-        arrow.textContent = sortDir === -1 ? '▼' : '▲';
+        arrow.className = 'arrow tf';
+        arrow.textContent = sortDir === -1 ? '🔽' : '🔼';
         th.appendChild(arrow);
       }
       th.addEventListener('click', () => {

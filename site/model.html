@@ -1,0 +1,871 @@
+<meta charset="utf-8">
+<title>예측 모델 — NBA DATA LAB</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
+<style>
+/* NBA DATA LAB 공통 스타일
+ *
+ * 컨셉: 기록집(record book). 농구의 고유 문서 형식은 박스스코어이므로 카드와 그림자 대신
+ * 괘선과 표를 기본 구조로 쓴다. 액센트는 농구공 가죽색(open-color orange) 하나만 둔다.
+ *
+ * 세 가지 규칙
+ *   글자  Pretendard 한 가지. 한국어판 서브셋에 없는 라틴 확장 문자(Jokić의 ć 등)는
+ *         같은 계열의 Pretendard Std가, 이모지 자리는 Tossface가 받는다(아래 --font).
+ *   아이콘 Tossface 이모지만. 아이콘 글리프는 .tf로 감싸 Tossface를 강제한다.
+ *   색    open-color(https://yeun.github.io/open-color/) 색표의 값만. 투명도로 섞은
+ *         색도 색표 밖의 색이 되므로, 옅은 색이 필요하면 같은 계열의 밝은 단계를 쓴다.
+ *         주석의 'orange 9' 같은 이름이 색표의 계열·단계다.
+ *
+ * 차트 계열색 4개는 dataviz 검증기(OKLab ΔE, 색각이상 시뮬레이션)를 라이트·다크 각각
+ * 통과한 조합이다. 산점도처럼 아무 두 점이 붙을 수 있는 차트는 앞 3개만 쓴다.
+ *
+ * 빌드 시점에 site_config.apply_base_css()가 각 템플릿의 자리표시자에 이 파일을 통째로
+ * 끼워 넣는다. 페이지 고유 레이아웃은 각 템플릿이 이 뒤에 이어서 정의한다.
+ */
+
+.viz-root {
+  color-scheme: light;
+  --font: "Pretendard Variable", "Pretendard Std Variable", Tossface;
+
+  --paper:        #f8f9fa;  /* gray 0 */
+  --surface:      #ffffff;  /* white */
+  --surface-sunk: #f1f3f5;  /* gray 1 */
+  --ink:          #212529;  /* gray 9 */
+  --ink-2:        #495057;  /* gray 7 */
+  --ink-3:        #868e96;  /* gray 6 */
+  --rule:         #dee2e6;  /* gray 3 */
+  --rule-strong:  #212529;  /* gray 9 */
+  --accent:       #d9480f;  /* orange 9 — 글자로도 쓰여 4:1 이상이 되는 단계 */
+  --accent-soft:  #fff4e6;  /* orange 0 */
+  --on-accent:    #ffffff;  /* 액센트 바탕 위 글자 */
+  --pos:          #2b8a3e;  /* green 9 */
+  --neg:          #c92a2a;  /* red 9 */
+  --pos-wash:     #d3f9d8;  /* green 1 — 면적 채움 */
+  --neg-wash:     #ffe8cc;  /* orange 1 */
+  --dim:          #dee2e6;  /* gray 3 — 흐리게 처리한 마크 */
+
+  /* 차트용 계열색 */
+  --cat-1: #e8590c;  /* orange 8 */
+  --cat-2: #1098ad;  /* cyan 7 */
+  --cat-3: #5f3dc4;  /* violet 9 */
+  --cat-4: #5c940d;  /* lime 9 */
+  --seq-lo: #ffe8cc; /* orange 1 */
+  --seq-hi: #e8590c; /* orange 8 */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .viz-root {
+    color-scheme: dark;
+    --paper:        #212529;  /* gray 9 */
+    --surface:      #343a40;  /* gray 8 */
+    --surface-sunk: #343a40;  /* gray 8 */
+    --ink:          #f8f9fa;  /* gray 0 */
+    --ink-2:        #ced4da;  /* gray 4 */
+    --ink-3:        #868e96;  /* gray 6 */
+    --rule:         #495057;  /* gray 7 */
+    --rule-strong:  #adb5bd;  /* gray 5 */
+    --accent:       #ff922b;  /* orange 5 */
+    --accent-soft:  #343a40;  /* gray 8 */
+    --on-accent:    #212529;  /* gray 9 */
+    --pos:          #51cf66;  /* green 5 */
+    --neg:          #ff6b6b;  /* red 5 */
+    --pos-wash:     #343a40;  /* gray 8 — 색표에 어두운 바탕용 옅은 녹색·주황이 없어 회색으로.
+                                 위아래 구분은 0선 기준 위치가 담당한다. */
+    --neg-wash:     #343a40;  /* gray 8 */
+    --dim:          #495057;  /* gray 7 */
+    --cat-1: #e8590c;  /* orange 8 */
+    --cat-2: #1098ad;  /* cyan 7 */
+    --cat-3: #7950f2;  /* violet 6 */
+    --cat-4: #66a80f;  /* lime 8 */
+    --seq-lo: #d9480f; /* orange 9 */
+    --seq-hi: #ffa94d; /* orange 4 */
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --paper:        #212529;
+  --surface:      #343a40;
+  --surface-sunk: #343a40;
+  --ink:          #f8f9fa;
+  --ink-2:        #ced4da;
+  --ink-3:        #868e96;
+  --rule:         #495057;
+  --rule-strong:  #adb5bd;
+  --accent:       #ff922b;
+  --accent-soft:  #343a40;
+  --on-accent:    #212529;
+  --pos:          #51cf66;
+  --neg:          #ff6b6b;
+  --pos-wash:     #343a40;
+  --neg-wash:     #343a40;
+  --dim:          #495057;
+  --cat-1: #e8590c;
+  --cat-2: #1098ad;
+  --cat-3: #7950f2;
+  --cat-4: #66a80f;
+  --seq-lo: #d9480f;
+  --seq-hi: #ffa94d;
+}
+
+/* ── 구 토큰 이름 별칭 ──────────────────────────────────────
+ * 페이지별 CSS와 캔버스 그리기 코드가 예전 이름을 쓰고 있다. var() 참조는
+ * 사용 시점에 풀리므로, 여기 한 번만 선언해도 다크 모드에서 알아서 따라간다.
+ */
+.viz-root {
+  --surface-1:      var(--surface);
+  --page-plane:     var(--paper);
+  --text-primary:   var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-muted:     var(--ink-3);
+  --grid:           var(--rule);
+  --baseline:       var(--rule);
+  --border:         var(--rule);
+  --row-hover:      var(--surface-sunk);
+  --chip-bg:        var(--surface-sunk);
+  --chip-bg-active: var(--accent-soft);
+  --dot:            var(--accent);
+  --good:           var(--pos);
+  --div-pos:        var(--pos);
+  --div-neg:        var(--neg);
+  --div-mid:        var(--ink-3);
+  --series-1:       var(--cat-1);
+  --series-2:       var(--cat-2);
+  --series-3:       var(--cat-3);
+  --series-4:       var(--cat-4);
+  --seq-100:        var(--seq-lo);
+  --seq-400:        var(--seq-hi);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+.viz-root {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding-block: 28px 72px;
+  padding-inline: 16px;
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+}
+.viz-root button, .viz-root input, .viz-root select, .viz-root textarea { font-family: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+/* 아이콘: Tossface 이모지. 숫자·#도 Tossface 범위에 있어서, 본문에서는 Pretendard가
+ * 먼저 받고 아이콘 자리에서만 Tossface를 강제한다. */
+.tf { font-family: Tossface; font-style: normal; font-weight: 400; line-height: 1; }
+
+/* ── 제목·라벨·수치 ───────────────────────────────────── */
+.display,
+.viz-root h1,
+.stat-figure,
+.rank-num {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.viz-root h1 {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+  line-height: 1.2;
+  margin: 0 0 6px;
+  text-wrap: balance;
+}
+.viz-root h2 { font-size: 1.05rem; margin: 0 0 8px; font-weight: 700; text-wrap: balance; }
+.viz-root h3 { font-size: 0.92rem; margin: 0 0 6px; font-weight: 600; }
+
+/* 섹션을 여는 작은 라벨. 카드 대신 이걸로 구역을 나눈다. */
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+/* ── 머리말 ────────────────────────────────────────────── */
+header.page-head { border-bottom: 2px solid var(--rule-strong); padding-bottom: 14px; margin-bottom: 22px; }
+header.page-head p { margin: 0; color: var(--ink-2); font-size: 0.92rem; max-width: 68ch; }
+
+.nav-links { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 14px; }
+.nav-link {
+  font-size: 0.84rem; font-weight: 500;
+  color: var(--ink-2); text-decoration: none;
+  padding: 5px 11px; border-radius: 4px;
+}
+.nav-link:hover { color: var(--accent); background: var(--accent-soft); }
+.nav-link[aria-current="page"] { color: var(--ink); font-weight: 700; }
+
+/* ── 조작부 ────────────────────────────────────────────── */
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.controls input, .controls select,
+.setup input, .setup select {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 4px;
+  padding: 7px 11px; font-size: 0.88rem; font-family: inherit;
+}
+.controls input:focus-visible, .controls select:focus-visible,
+.setup input:focus-visible, .setup select:focus-visible,
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.controls input { flex: 1 1 200px; min-width: 150px; }
+.controls select#season-select,
+#season-select { font-weight: 600; font-variant-numeric: tabular-nums; }
+.controls .count, .count { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); white-space: nowrap; }
+
+/* ── 표: 카드가 아니라 괘선으로 ─────────────────────────── */
+.table-scroll { overflow-x: auto; border-top: 2px solid var(--rule-strong); }
+/* 템플릿에 doctype이 없어 브라우저가 호환(quirks) 모드로 그린다. 이 모드에서 표는 글자색·굵기를
+ * 상속하지 않아 다크 모드에서 검은 글자로 남는다. 명시적으로 상속시킨다. */
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem;
+        color: inherit; font-weight: inherit; line-height: inherit; }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--paper);
+  font-weight: 600; font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-3); text-align: right; white-space: nowrap;
+  padding: 9px 12px; border-bottom: 1px solid var(--rule);
+}
+tbody td {
+  padding: 8px 12px; text-align: right;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+tbody tr:hover td { background: var(--surface-sunk); }
+.rank-num { color: var(--ink-3); font-variant-numeric: tabular-nums; font-weight: 500; }
+
+footer.page-foot {
+  margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--rule);
+  font-size: 0.78rem; color: var(--ink-3); line-height: 1.6;
+}
+
+.empty-state { padding: 40px 16px; text-align: center; color: var(--ink-3); font-size: 0.88rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+
+  section.block { margin-top: 38px; }
+  section.block > h2 { font-size: 1.2rem; margin: 4px 0 4px; }
+  section.block > .lede { margin: 0 0 14px; font-size: 0.9rem; color: var(--ink-2); max-width: 70ch; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  /* ── 핵심 수치 ─────────────────────────────────────────── */
+  .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); }
+  .score-cell { background: var(--paper); padding: 14px 6px 16px; }
+  .score-cell .k { font-size: 0.78rem; color: var(--ink-2); font-weight: 500; }
+  .score-cell .v { font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin-top: 2px; }
+  .score-cell .v .was { color: var(--ink-3); font-size: 1.05rem; font-weight: 500; }
+  .score-cell .v .to { color: var(--ink-3); font-size: 0.95rem; margin: 0 4px; font-weight: 400; }
+  .score-cell .v small { font-size: 0.95rem; font-weight: 600; margin-left: 1px; }
+  .score-cell .sub { font-size: 0.74rem; color: var(--ink-3); }
+
+  /* ── 순위 예측 ─────────────────────────────────────────── */
+  .confs { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px 34px; }
+  .conf h3 { font-size: 1rem; margin: 0 0 6px; font-weight: 700; }
+  .standings { border-top: 2px solid var(--rule-strong); }
+  .st-head, .st-row {
+    display: grid; grid-template-columns: 1.6rem 7.6rem 1fr 3rem;
+    align-items: center; gap: 10px;
+  }
+  .st-head { padding: 6px 0 4px; border-bottom: 1px solid var(--rule); }
+  .st-head span { font-size: 0.7rem; color: var(--ink-3); font-weight: 600; }
+  .st-head .axis { position: relative; height: 1.1em; }
+  .st-head .axis i {
+    position: absolute; top: 0; transform: translateX(-50%);
+    font-style: normal; font-size: 0.68rem; color: var(--ink-3); font-variant-numeric: tabular-nums;
+  }
+  .st-head .num { text-align: right; }
+
+  .st-row {
+    width: 100%; padding: 6px 0; border: 0; border-bottom: 1px solid var(--rule);
+    background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  }
+  .st-row:hover, .st-row[aria-expanded="true"] { background: var(--surface-sunk); }
+  .st-row .rk { font-size: 0.8rem; color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; }
+  .st-row .tm { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st-row .tm small { font-size: 0.68rem; color: var(--ink-3); font-weight: 500; margin-left: 5px; letter-spacing: 0.04em; }
+  .st-row .wins { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .track { position: relative; height: 18px; }
+  .track .ref { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--rule); }
+  .track .range { position: absolute; top: 8px; height: 2px; background: var(--ink-3); }
+  .track .range::before, .track .range::after {
+    content: ""; position: absolute; top: -3px; width: 1px; height: 8px; background: var(--ink-3);
+  }
+  .track .range::before { left: 0; }
+  .track .range::after { right: 0; }
+  .track .bar {
+    position: absolute; left: 0; top: 4px; height: 10px;
+    background: var(--cat-1); border-radius: 0 4px 4px 0;
+  }
+  .cutline {
+    display: flex; align-items: center; gap: 8px; padding: 3px 0;
+    font-size: 0.68rem; color: var(--ink-3); font-weight: 600;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+
+  .roster { border-bottom: 1px solid var(--rule); padding: 8px 0 12px 2.2rem; background: var(--surface-sunk); }
+  .roster p { margin: 0 0 6px; font-size: 0.78rem; color: var(--ink-2); }
+  .roster table { font-size: 0.8rem; }
+  .roster td, .roster th { padding: 4px 8px; }
+  .roster thead th { background: var(--surface-sunk); }
+  .roster td:first-child, .roster th:first-child { text-align: left; }
+  .tag {
+    display: inline-block; font-size: 0.66rem; font-weight: 600; padding: 0 5px; margin-left: 6px;
+    border: 1px solid var(--rule); border-radius: 3px; color: var(--ink-3);
+  }
+
+  .legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 0.78rem; color: var(--ink-2); }
+  .legend-line .key { display: inline-flex; align-items: center; gap: 6px; }
+  .key-bar { width: 16px; height: 10px; background: var(--cat-1); border-radius: 0 3px 3px 0; display: inline-block; }
+  .key-range { width: 18px; height: 2px; background: var(--ink-3); display: inline-block; position: relative; }
+  .key-ref { width: 1px; height: 12px; background: var(--rule-strong); display: inline-block; }
+  .key-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  /* ── 차트 공통 ─────────────────────────────────────────── */
+  svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart text { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .chart text.row-label { fill: var(--ink-2); font-size: 12px; }
+  .chart .gridline { stroke: var(--rule); stroke-width: 1; }
+  .chart .link { stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; }
+  .chart .dot-prev { fill: var(--cat-2); stroke: var(--paper); stroke-width: 2; }
+  .chart .dot-model { fill: var(--cat-1); stroke: var(--paper); stroke-width: 2; }
+  .chart .hit { fill: transparent; }
+  .chart g.row:hover .link, .chart g.row:focus .link { stroke: var(--ink); }
+  .chart g.row:hover .row-label, .chart g.row:focus .row-label { fill: var(--ink); font-weight: 600; }
+  .chart g.row:focus { outline: none; }
+
+  .tooltip {
+    position: fixed; z-index: 10; pointer-events: none; display: none;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--rule-strong);
+    border-radius: 4px; padding: 8px 10px; font-size: 0.8rem; line-height: 1.5; min-width: 150px;
+  }
+  .tooltip .tt-title { font-size: 0.74rem; color: var(--ink-3); margin-bottom: 2px; }
+  .tooltip .tt-row { display: flex; align-items: center; gap: 8px; }
+  .tooltip .tt-row b { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .tooltip .tt-row span { color: var(--ink-2); }
+  .tooltip .tt-key { width: 12px; height: 2px; display: inline-block; }
+
+  /* ── 모델 비교 막대 ────────────────────────────────────── */
+  .cmp { border-top: 2px solid var(--rule-strong); }
+  .cmp-row {
+    display: grid; grid-template-columns: minmax(9rem, 15rem) 1fr 3.6rem;
+    align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule);
+  }
+  .cmp-row .nm { font-size: 0.86rem; color: var(--ink-2); }
+  .cmp-row.chosen .nm { color: var(--ink); font-weight: 700; }
+  .cmp-row.ref .nm { font-style: normal; color: var(--ink-3); }
+  .cmp-row .meter { height: 10px; position: relative; }
+  .cmp-row .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: var(--ink-3); }
+  .cmp-row.chosen .fill { background: var(--cat-1); }
+  .cmp-row.ref .fill { background: var(--dim); }
+  .cmp-row .val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .data-table { margin-top: 16px; }
+  .data-table th:first-child, .data-table td:first-child { text-align: left; }
+  .data-table tr.chosen td { font-weight: 700; }
+  .data-table tr.ref td { color: var(--ink-3); }
+
+  .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 22px 34px; }
+  .two-col h3 { font-size: 0.95rem; margin: 0 0 6px; }
+  .two-col p { margin: 8px 0 0; font-size: 0.84rem; color: var(--ink-2); }
+
+  .finding {
+    margin: 16px 0 0; padding: 12px 14px; border-left: 3px solid var(--accent);
+    background: var(--accent-soft); font-size: 0.88rem; color: var(--ink); max-width: 76ch;
+  }
+  .finding .tf { margin-right: 6px; }
+
+  details.notes { margin-top: 30px; border-top: 1px solid var(--rule); }
+  details.notes > summary {
+    font-size: 0.86rem; font-weight: 600; color: var(--ink-2);
+    cursor: pointer; padding: 10px 0; list-style: none;
+  }
+  details.notes > summary::-webkit-details-marker { display: none; }
+  details.notes > summary::before { content: "👉 "; font-family: Tossface; }
+  details.notes[open] > summary::before { content: "👇 "; }
+  details.notes > summary:hover { color: var(--accent); }
+  .caveat { margin: 0; font-size: 0.85rem; color: var(--ink-2); line-height: 1.8; max-width: 76ch; }
+  .caveat strong { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 520px) {
+    .confs { grid-template-columns: 1fr; }
+    .st-head, .st-row { grid-template-columns: 1.4rem 6rem 1fr 2.6rem; gap: 6px; }
+    .cmp-row { grid-template-columns: 8rem 1fr 3rem; }
+  }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <div class="eyebrow">예측 모델 · <span id="season-from">—</span> 기록 기준</div>
+      <h1><span id="season-to">—</span> 팀 순위 예측</h1>
+      <p>선수 한 명 한 명의 다음 시즌 NDL Score 예측을 로스터 단위로 모아, 팀의 공격·수비 레이팅과
+         승수를 예측합니다. 같은 방식을 지난 11개 시즌에 그대로 돌려 얼마나 맞았는지도 함께 공개합니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="/"><span class="tf">🏠</span> 홈</a>
+        <a class="nav-link" href="/stats">시즌 스탯</a>
+        <a class="nav-link" href="/ndl">NDL Score</a>
+        <a class="nav-link" href="/player">선수 커리어</a>
+        <a class="nav-link" href="/scatter">선수 포지셔닝</a>
+        <a class="nav-link" href="/game">시즌 시뮬레이션</a>
+        <a class="nav-link" href="/projection">다음 시즌 예측</a>
+        <a class="nav-link" href="/model" aria-current="page">예측 모델</a>
+      </div>
+    </header>
+
+    <div class="scores" id="scores"></div>
+
+    <!-- 1. 순위 예측 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🏆</span> 2026–27 정규시즌</div>
+      <h2>컨퍼런스별 예상 승수</h2>
+      <p class="lede">막대가 예상 승수, 가는 선이 지난 11개 시즌의 평균 오차(<b id="mae-w">—</b>) 범위입니다.
+         범위가 겹치는 팀끼리는 순위가 얼마든지 뒤집힐 수 있으니, 순위 하나하나보다 상위·중위·하위권으로
+         읽는 편이 맞습니다. 팀을 누르면 어느 선수가 얼마나 기여했는지 펼쳐집니다.</p>
+      <div class="confs" id="confs"></div>
+      <div class="legend-line">
+        <span class="key"><span class="key-bar"></span>예상 승수</span>
+        <span class="key"><span class="key-range"></span>± 평균 오차</span>
+        <span class="key"><span class="key-ref"></span>41승(5할)</span>
+      </div>
+    </section>
+
+    <!-- 2. 백테스트 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">📊</span> 백테스트</div>
+      <h2>지난 11개 시즌, 얼마나 맞았나</h2>
+      <p class="lede">각 시즌을 그 직전 시즌까지의 기록만으로 예측하고, 실제 순레이팅(공격 − 수비, 리그 평균 대비)과의
+         평균 오차를 쟀습니다. 비교 대상은 "작년 팀 성적이 그대로 간다"는 가장 단순한 예측입니다.
+         <b id="beat-count">—</b></p>
+      <svg class="chart" id="dumbbell" role="img" aria-labelledby="dumbbell-title"><title id="dumbbell-title">시즌별 순레이팅 평균 오차: 작년 그대로 대 로스터 예측</title></svg>
+      <div class="legend-line">
+        <span class="key"><span class="key-dot" style="background:var(--cat-1)"></span>로스터 NDL 예측 (이 모델)</span>
+        <span class="key"><span class="key-dot" style="background:var(--cat-2)"></span>작년 팀 성적 그대로</span>
+      </div>
+    </section>
+
+    <!-- 3. 무엇이 오차를 만드나 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🔍</span> 오차는 어디서 오나</div>
+      <h2>남은 오차는 선수 예측에서 나온다</h2>
+      <p class="lede">무엇을 미리 알았다면 얼마나 나아졌을지 거꾸로 재봤습니다. 실제 출전시간을 알아도 오차는 조금밖에
+         줄지 않지만, <b>그 시즌 선수 성적까지 알면</b> 절반 아래로 떨어집니다. 팀 집계 방식보다
+         선수 개개인의 다음 시즌 변화를 맞히는 쪽이 개선 여지가 큽니다.</p>
+      <div class="cmp" id="cmp"></div>
+      <div class="table-scroll data-table">
+        <table id="cmp-table"></table>
+      </div>
+    </section>
+
+    <!-- 4. 공격과 수비 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🧮</span> 공격과 수비</div>
+      <h2>공격은 맞고, 수비는 다음 시즌으로 이어지지 않는다</h2>
+      <div class="two-col">
+        <div>
+          <div class="table-scroll data-table" style="margin-top:0"><table id="od-table"></table></div>
+        </div>
+        <div>
+          <p style="margin-top:0">선수 기록으로 공격은 잘 맞히지만, 수비는 <b>작년 팀 성적을 그대로 쓰느니만 못했습니다.</b>
+             그래서 작년 팀 레이팅을 피처로 함께 넣은 모델을 씁니다.</p>
+          <p>그렇다고 선수 기록이 팀 수비를 못 담는 것은 아닙니다. 그 시즌 실제 선수 기록을 넣으면 수비 상관이
+             <b id="true-d">—</b>까지 오릅니다. 팀 성적이 섞일 수 있는 승리기여 축을 빼도 거의 같았습니다.
+             문제는 수비 쪽 기록이 <b>다음 시즌까지 이어지지 않는다</b>는 데 있습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 넣어보고 뺀 것 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🧪</span> 넣어보고 뺀 것</div>
+      <h2>신인을 드래프트 순번으로 나눠도 달라지지 않았다</h2>
+      <p class="lede">기록이 없는 신인은 학습 구간에서 같은 처지였던 선수들의 평균(<b id="unknown-avg">—</b>)을 받습니다.
+         상위 지명 신인이 있는 팀이 낮게 잡힐 거라 보고 지명 순번별로 나눠봤지만, 1~3순위만 평균보다 높았습니다.</p>
+      <div class="two-col">
+        <div>
+          <h3>신인 첫 시즌 성적 (학습 구간 1979~2015)</h3>
+          <div class="table-scroll data-table" style="margin-top:0"><table id="pick-table"></table></div>
+        </div>
+        <div>
+          <h3>하나씩 켜고 잰 홀드아웃 결과</h3>
+          <div class="table-scroll data-table" style="margin-top:0"><table id="var-table"></table></div>
+          <p>세 가지 모두 오차가 0.01 안팎으로 움직여 넣지 않았습니다. 샬럿 2025-26은 4순위 신인 크니펠이
+             NDL 65.0을 내 크게 틀렸는데, 같은 4~10순위 평균은 50.2였습니다. 지명 순번으로는 알 수 없는 이상치였습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <details class="notes">
+      <summary>어떻게 만들었고, 무엇을 조심했는지</summary>
+      <p class="caveat">
+        <strong>미래 정보를 쓰지 않았습니다.</strong> 예를 들어 2017-18 클리블랜드라면, 그 시즌 로스터 선수 전원의
+        NDL을 2016-17까지의 기록만으로 예측합니다. 로스터는 그 시즌에 처음 뛴 팀(개막 로스터에 해당)으로,
+        출전 비중은 직전 시즌 경기당 출전시간으로 잡았습니다. 실제 출전시간을 쓰면 부상·트레이드를 미리 아는 셈이 됩니다.<br/>
+        <strong>목표값은 리그 평균 대비 레이팅입니다.</strong> 리그 전체 득점 수준은 시대마다 10점 넘게 움직여,
+        빼지 않으면 시대를 맞히는 문제가 됩니다. 승수는 순레이팅에 학습 구간에서 구한 계수(1점당 승률
+        <span id="win-coef">—</span>)를 곱해 환산했습니다.<br/>
+        <strong>학습과 시험을 나눴습니다.</strong> 학습은 <span id="train-span">—</span> 시즌, 시험은
+        <span id="test-span">—</span> 시즌입니다. 피처 조합은 학습 구간 안에서 시즌을 하나씩 빼 맞혀보는
+        교차검증으로만 골랐습니다.<br/>
+        <strong>2026-27 로스터</strong>는 2026년 10월 25일 기준이고, 시즌아웃이 확정된 선수는 뺐습니다. 과거 로스터는
+        "그 시즌에 실제로 뛴 선수"라 시즌을 통째로 쉰 선수가 없으니 조건을 맞추기 위해서입니다.<br/>
+        <strong>한계</strong>: 부상, 탱킹, 신인·유망주의 급성장은 직전 시즌 기록에 없는 정보라 반영하지 못합니다.
+        크게 틀린 팀은 대부분 이 세 경우였습니다.
+      </p>
+    </details>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com · 팀 레이팅은 일정 보정값(ORtg/A, DRtg/A) ·
+      NDL Score와 이 예측 모두 직접 설계한 실험적 지표입니다 · 개인 프로젝트
+    </footer>
+  </div>
+  <div class="tooltip" id="tooltip" role="status"></div>
+</div>
+
+<script type="application/json" id="team-data">{"season":"2026-27","model":{"chosen":"comp+prev","cv":{"ndl":2.109,"comp":2.022,"comp+prev":1.892},"holdout":{"orac_comp":{"maeO":1.67,"maeD":2.01,"maeN":2.63,"maeW":6.22,"corrO":0.755,"corrD":0.435,"corrN":0.748,"rankRho":0.744,"playoff":8.82},"orac_comp+prev":{"maeO":1.69,"maeD":1.84,"maeN":2.56,"maeW":6.16,"corrO":0.743,"corrD":0.566,"corrN":0.751,"rankRho":0.739,"playoff":9.0},"orac_ndl":{"maeO":1.71,"maeD":1.98,"maeN":2.62,"maeW":6.23,"corrO":0.743,"corrD":0.454,"corrN":0.751,"rankRho":0.756,"playoff":9.09},"prev":{"maeO":2.39,"maeD":2.17,"maeN":3.37,"maeW":8.38,"corrO":0.537,"corrD":0.516,"corrN":0.586,"rankRho":0.565,"playoff":7.82},"real_comp":{"maeO":1.85,"maeD":2.01,"maeN":2.83,"maeW":6.87,"corrO":0.682,"corrD":0.423,"corrN":0.683,"rankRho":0.669,"playoff":8.64},"real_comp+prev":{"maeO":1.86,"maeD":1.86,"maeN":2.73,"maeW":6.72,"corrO":0.668,"corrD":0.545,"corrN":0.685,"rankRho":0.663,"playoff":8.18},"real_ndl":{"maeO":1.87,"maeD":2.0,"maeN":2.81,"maeW":6.85,"corrO":0.67,"corrD":0.43,"corrN":0.689,"rankRho":0.679,"playoff":8.91},"true_comp":{"maeO":1.14,"maeD":1.37,"maeN":1.15,"maeW":3.16,"corrO":0.901,"corrD":0.79,"corrN":0.956,"rankRho":0.942,"playoff":10.73},"true_comp+prev":{"maeO":1.07,"maeD":1.28,"maeN":1.15,"maeW":3.14,"corrO":0.909,"corrD":0.817,"corrN":0.956,"rankRho":0.947,"playoff":10.64},"true_ndl":{"maeO":1.25,"maeD":1.75,"maeN":1.4,"maeW":3.64,"corrO":0.875,"corrD":0.618,"corrN":0.932,"rankRho":0.908,"playoff":10.27},"zero":{"maeO":2.57,"maeD":2.2,"maeN":3.86,"maeW":9.78,"corrO":0.0,"corrD":0.0,"corrN":0.0,"rankRho":null,"playoff":7.36}},"trainSeasons":[1979,2015],"holdoutSeasons":[2016,2026],"winCoef":0.0308,"compCoef":{"ortg":[-58.068,1.081,0.564,1.596,-0.273,-2.61,-0.911],"drtg":[-4.926,0.12,0.512,3.608,0.441,-3.277,-5.973]},"bySeason":[{"season":"2015-16","prev":3.31,"model":2.83},{"season":"2016-17","prev":2.49,"model":1.34},{"season":"2017-18","prev":2.93,"model":2.37},{"season":"2018-19","prev":2.56,"model":2.41},{"season":"2019-20","prev":3.14,"model":2.61},{"season":"2020-21","prev":4.26,"model":3.23},{"season":"2021-22","prev":3.38,"model":3.01},{"season":"2022-23","prev":3.18,"model":2.05},{"season":"2023-24","prev":3.78,"model":3.37},{"season":"2024-25","prev":3.62,"model":3.13},{"season":"2025-26","prev":4.48,"model":3.7}]},"teams":[{"team":"OKC","conf":"W","ortg":3.49,"drtg":-5.51,"nrtg":9.0,"wins":63.8,"teamNdl":58.63},{"team":"SAS","conf":"W","ortg":2.62,"drtg":-2.5,"nrtg":5.12,"wins":53.9,"teamNdl":55.83},{"team":"DEN","conf":"W","ortg":5.29,"drtg":0.67,"nrtg":4.61,"wins":52.7,"teamNdl":57.25},{"team":"HOU","conf":"W","ortg":1.93,"drtg":-2.65,"nrtg":4.58,"wins":52.6,"teamNdl":55.7},{"team":"CLE","conf":"E","ortg":2.74,"drtg":-1.14,"nrtg":3.88,"wins":50.8,"teamNdl":56.54},{"team":"BOS","conf":"E","ortg":2.28,"drtg":-1.5,"nrtg":3.78,"wins":50.6,"teamNdl":55.61},{"team":"DET","conf":"E","ortg":0.71,"drtg":-2.82,"nrtg":3.52,"wins":49.9,"teamNdl":54.94},{"team":"NYK","conf":"E","ortg":2.13,"drtg":-1.09,"nrtg":3.21,"wins":49.1,"teamNdl":54.92},{"team":"MIN","conf":"W","ortg":1.43,"drtg":-1.45,"nrtg":2.88,"wins":48.3,"teamNdl":55.33},{"team":"TOR","conf":"E","ortg":0.85,"drtg":-1.96,"nrtg":2.82,"wins":48.1,"teamNdl":55.22},{"team":"PHI","conf":"E","ortg":1.21,"drtg":-0.66,"nrtg":1.87,"wins":45.7,"teamNdl":54.94},{"team":"LAL","conf":"W","ortg":1.74,"drtg":-0.1,"nrtg":1.84,"wins":45.7,"teamNdl":55.24},{"team":"POR","conf":"W","ortg":0.07,"drtg":-0.69,"nrtg":0.76,"wins":42.9,"teamNdl":53.85},{"team":"ATL","conf":"E","ortg":-0.37,"drtg":-1.02,"nrtg":0.65,"wins":42.6,"teamNdl":53.34},{"team":"ORL","conf":"E","ortg":-0.53,"drtg":-1.17,"nrtg":0.64,"wins":42.6,"teamNdl":53.55},{"team":"CHO","conf":"E","ortg":0.62,"drtg":0.32,"nrtg":0.3,"wins":41.7,"teamNdl":53.08},{"team":"PHO","conf":"W","ortg":-0.67,"drtg":-0.35,"nrtg":-0.32,"wins":40.2,"teamNdl":52.91},{"team":"MIA","conf":"E","ortg":-0.76,"drtg":0.03,"nrtg":-0.79,"wins":39.0,"teamNdl":52.43},{"team":"DAL","conf":"W","ortg":-1.78,"drtg":0.09,"nrtg":-1.86,"wins":36.3,"teamNdl":52.62},{"team":"GSW","conf":"W","ortg":-1.95,"drtg":0.27,"nrtg":-2.22,"wins":35.4,"teamNdl":52.13},{"team":"IND","conf":"E","ortg":-0.97,"drtg":1.41,"nrtg":-2.37,"wins":35.0,"teamNdl":53.34},{"team":"NOP","conf":"W","ortg":-1.54,"drtg":1.6,"nrtg":-3.13,"wins":33.1,"teamNdl":51.66},{"team":"CHI","conf":"E","ortg":-1.85,"drtg":1.36,"nrtg":-3.22,"wins":32.9,"teamNdl":52.14},{"team":"LAC","conf":"W","ortg":-1.61,"drtg":1.73,"nrtg":-3.34,"wins":32.6,"teamNdl":50.98},{"team":"MEM","conf":"W","ortg":-1.4,"drtg":2.03,"nrtg":-3.43,"wins":32.3,"teamNdl":52.24},{"team":"MIL","conf":"E","ortg":-2.23,"drtg":2.8,"nrtg":-5.03,"wins":28.3,"teamNdl":51.07},{"team":"BRK","conf":"E","ortg":-3.45,"drtg":2.0,"nrtg":-5.45,"wins":27.2,"teamNdl":51.18},{"team":"UTA","conf":"W","ortg":-1.71,"drtg":3.76,"nrtg":-5.46,"wins":27.2,"teamNdl":50.69},{"team":"WAS","conf":"E","ortg":-2.69,"drtg":3.26,"nrtg":-5.94,"wins":26.0,"teamNdl":50.63},{"team":"SAC","conf":"W","ortg":-3.61,"drtg":3.28,"nrtg":-6.89,"wins":23.6,"teamNdl":49.86}],"players":[{"team":"ATL","id":"johnsja05","player":"Jalen Johnson","projected":63.9,"known":true,"share":0.095,"injury":"","twoWay":false},{"team":"ATL","id":"alexani01","player":"Nickeil Alexander-Walker","projected":57.7,"known":true,"share":0.091,"injury":"","twoWay":false},{"team":"ATL","id":"wiggiaa01","player":"Aaron Wiggins","projected":51.6,"known":true,"share":0.059,"injury":"","twoWay":false},{"team":"ATL","id":"daniedy01","player":"Dyson Daniels","projected":62.1,"known":true,"share":0.09,"injury":"","twoWay":false},{"team":"ATL","id":"mccolcj01","player":"CJ McCollum","projected":51.4,"known":true,"share":0.081,"injury":"","twoWay":false},{"team":"ATL","id":"okongon01","player":"Onyeka Okongwu","projected":57.2,"known":true,"share":0.084,"injury":"","twoWay":false},{"team":"ATL","id":"dortlu01","player":"Luguentz Dort","projected":48.8,"known":true,"share":0.073,"injury":"","twoWay":false},{"team":"ATL","id":"landajo01","player":"Jock Landale","projected":48.1,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"ATL","id":"flemiki01","player":"Kingston Flemings","projected":49.5,"known":false,"share":0.037,"injury":"","twoWay":false},{"team":"ATL","id":"kispeco01","player":"Corey Kispert","projected":48.4,"known":true,"share":0.05,"injury":"","twoWay":false},{"team":"ATL","id":"newelas01","player":"Asa Newell","projected":53.4,"known":true,"share":0.031,"injury":"","twoWay":false},{"team":"ATL","id":"finnedo01","player":"Dorian Finney-Smith","projected":45.1,"known":true,"share":0.046,"injury":"","twoWay":false},{"team":"ATL","id":"ejiofzu01","player":"Zuby Ejiofor","projected":49.5,"known":false,"share":0.037,"injury":"","twoWay":false},{"team":"ATL","id":"dennira01","player":"RayJ Dennis","projected":49.5,"known":false,"share":0.033,"injury":"","twoWay":true},{"team":"ATL","id":"gilbeke01","player":"Keshon Gilbert","projected":49.5,"known":false,"share":0.05,"injury":"","twoWay":true},{"team":"ATL","id":"wilsoja03","player":"Jalen Wilson","projected":46.3,"known":true,"share":0.043,"injury":"","twoWay":true},{"team":"ATL","id":"gueyemo02","player":"Mouhamed Gueye","projected":51.0,"known":true,"share":0.041,"injury":"Out (Foot) - The Hawks said on Wednesday (Jul. 15) that Gueye underwent surgery on fractured foot and is to be re-evaluated in 3-4 months, per Brad Rowland of the Locked On Podcast Network.","twoWay":false},{"team":"BOS","id":"georgpa01","player":"Paul George","projected":51.9,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"BOS","id":"tatumja01","player":"Jayson Tatum","projected":58.3,"known":true,"share":0.094,"injury":"","twoWay":false},{"team":"BOS","id":"whitede01","player":"Derrick White","projected":64.1,"known":true,"share":0.098,"injury":"","twoWay":false},{"team":"BOS","id":"pritcpa01","player":"Payton Pritchard","projected":62.1,"known":true,"share":0.093,"injury":"","twoWay":false},{"team":"BOS","id":"quetane01","player":"Neemias Queta","projected":60.6,"known":true,"share":0.073,"injury":"","twoWay":false},{"team":"BOS","id":"hausesa01","player":"Sam Hauser","projected":54.5,"known":true,"share":0.071,"injury":"","twoWay":false},{"team":"BOS","id":"scheiba01","player":"Baylor Scheierman","projected":54.0,"known":true,"share":0.053,"injury":"","twoWay":false},{"team":"BOS","id":"garzalu01","player":"Luka Garza","projected":52.6,"known":true,"share":0.047,"injury":"","twoWay":false},{"team":"BOS","id":"robinmi01","player":"Mitchell Robinson","projected":55.7,"known":true,"share":0.056,"injury":"","twoWay":false},{"team":"BOS","id":"walshjo01","player":"Jordan Walsh","projected":55.6,"known":true,"share":0.051,"injury":"","twoWay":false},{"team":"BOS","id":"gonzahu01","player":"Hugo González","projected":52.9,"known":true,"share":0.042,"injury":"","twoWay":false},{"team":"BOS","id":"conlemi01","player":"Mike Conley","projected":51.3,"known":true,"share":0.053,"injury":"","twoWay":false},{"team":"BOS","id":"william01","player":"Amari Williams","projected":49.5,"known":false,"share":0.019,"injury":"","twoWay":true},{"team":"BOS","id":"cenacch01","player":"Chris Cenac Jr.","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":false},{"team":"BOS","id":"harpero02","player":"Ron Harper Jr.","projected":49.5,"known":false,"share":0.032,"injury":"","twoWay":false},{"team":"BOS","id":"mitchdi01","player":"Dillon Mitchell","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":true},{"team":"BOS","id":"cartede02","player":"Devin Carter","projected":49.8,"known":true,"share":0.053,"injury":"Out (Illness) - The Celtics listed Carter as Out for Friday's (Oct. 23) game against the Knicks.","twoWay":true},{"team":"BRK","id":"randlju01","player":"Julius Randle","projected":56.2,"known":true,"share":0.09,"injury":"","twoWay":false},{"team":"BRK","id":"portemi01","player":"Michael Porter Jr.","projected":56.4,"known":true,"share":0.089,"injury":"","twoWay":false},{"team":"BRK","id":"demineg01","player":"Egor Dëmin","projected":53.0,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"BRK","id":"sharpda01","player":"Day'Ron Sharpe","projected":53.2,"known":true,"share":0.051,"injury":"","twoWay":false},{"team":"BRK","id":"brownmi02","player":"Mikel Brown Jr.","projected":49.5,"known":false,"share":0.037,"injury":"","twoWay":false},{"team":"BRK","id":"clownno01","player":"Noah Clowney","projected":48.3,"known":true,"share":0.074,"injury":"","twoWay":false},{"team":"BRK","id":"wagnemo01","player":"Moritz Wagner","projected":51.7,"known":true,"share":0.033,"injury":"","twoWay":false},{"team":"BRK","id":"elliske01","player":"Keon Ellis","projected":54.8,"known":true,"share":0.056,"injury":"","twoWay":false},{"team":"BRK","id":"johnsch06","player":"Chaney Johnson","projected":49.5,"known":false,"share":0.056,"injury":"","twoWay":true},{"team":"BRK","id":"traorno01","player":"Nolan Traoré","projected":46.6,"known":true,"share":0.061,"injury":"","twoWay":false},{"team":"BRK","id":"minotjo01","player":"Josh Minott","projected":53.8,"known":true,"share":0.047,"injury":"","twoWay":false},{"team":"BRK","id":"bilodty01","player":"Tyler Bilodeau","projected":49.5,"known":false,"share":0.037,"injury":"Out (Shoulder) - Bilodeau is listed as Out for Saturday's (Oct. 24) game against the Cavaliers.","twoWay":true},{"team":"BRK","id":"poweldr01","player":"Drake Powell","projected":46.8,"known":true,"share":0.058,"injury":"","twoWay":false},{"team":"BRK","id":"sarafbe01","player":"Ben Saraf","projected":48.3,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"BRK","id":"jeffejo01","player":"Joshua Jefferson","projected":49.5,"known":false,"share":0.037,"injury":"","twoWay":false},{"team":"BRK","id":"wolfda01","player":"Danny Wolf","projected":50.0,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"BRK","id":"nelsogr02","player":"Grant Nelson","projected":49.5,"known":false,"share":0.024,"injury":"","twoWay":true},{"team":"BRK","id":"mannte01","player":"Terance Mann","projected":48.1,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"CHI","id":"wilsoca01","player":"Caleb Wilson","projected":49.5,"known":false,"share":0.041,"injury":"","twoWay":false},{"team":"CHI","id":"powelno01","player":"Norman Powell","projected":53.2,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"CHI","id":"buzelma01","player":"Matas Buzelis","projected":53.7,"known":true,"share":0.087,"injury":"","twoWay":false},{"team":"CHI","id":"smithja04","player":"Jalen Smith","projected":51.0,"known":true,"share":0.062,"injury":"","twoWay":false},{"team":"CHI","id":"jonestr01","player":"Tre Jones","projected":57.2,"known":true,"share":0.081,"injury":"","twoWay":false},{"team":"CHI","id":"millele01","player":"Leonard Miller","projected":52.9,"known":true,"share":0.047,"injury":"","twoWay":false},{"team":"CHI","id":"hieldbu01","player":"Buddy Hield","projected":48.3,"known":true,"share":0.048,"injury":"","twoWay":false},{"team":"CHI","id":"giddejo01","player":"Josh Giddey","projected":59.6,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"CHI","id":"okorois01","player":"Isaac Okoro","projected":49.4,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"CHI","id":"essenno01","player":"Noa Essengue","projected":49.5,"known":false,"share":0.009,"injury":"Out (Head Contusion) - Essengue is Out for Saturday's (Oct. 24) game against Washington.","twoWay":false},{"team":"CHI","id":"colliza01","player":"Zach Collins","projected":49.8,"known":true,"share":0.055,"injury":"","twoWay":false},{"team":"CHI","id":"selleja01","player":"Jaylin Sellers","projected":49.5,"known":false,"share":0.041,"injury":"","twoWay":true},{"team":"CHI","id":"awakato01","player":"Tobe Awaka","projected":49.5,"known":false,"share":0.041,"injury":"","twoWay":true},{"team":"CHI","id":"claxtni01","player":"Nic Claxton","projected":55.7,"known":true,"share":0.083,"injury":"Out (Hamstring) - The Bulls said on Monday (Oct. 19) that Claxton will be re-evaluated in two weeks, according to K.C. Johnson of Chicago Sports Network.","twoWay":false},{"team":"CHI","id":"willipa01","player":"Patrick Williams","projected":44.6,"known":true,"share":0.061,"injury":"Out (Groin) - The Bulls listed Williams as Out for Saturday's (Oct. 24) game against the Wizards.","twoWay":false},{"team":"CHI","id":"swainda01","player":"Dailyn Swain","projected":49.5,"known":false,"share":0.041,"injury":"","twoWay":false},{"team":"CHI","id":"hawkijo01","player":"Jordan Hawkins","projected":47.5,"known":true,"share":0.041,"injury":"","twoWay":true},{"team":"CHO","id":"reidna01","player":"Naz Reid","projected":54.2,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"CHO","id":"millebr02","player":"Brandon Miller","projected":53.5,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"CHO","id":"allengr01","player":"Grayson Allen","projected":53.4,"known":true,"share":0.076,"injury":"","twoWay":false},{"team":"CHO","id":"schrode01","player":"Dennis Schröder","projected":44.8,"known":true,"share":0.064,"injury":"","twoWay":false},{"team":"CHO","id":"diabamo01","player":"Moussa Diabaté","projected":57.5,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"CHO","id":"kalkbry01","player":"Ryan Kalkbrenner","projected":59.4,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"CHO","id":"onealro01","player":"Royce O'Neale","projected":52.6,"known":true,"share":0.075,"injury":"","twoWay":false},{"team":"CHO","id":"jamessi01","player":"Sion James","projected":48.4,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"CHO","id":"anderch02","player":"Christian Anderson Jr.","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"CHO","id":"salauti01","player":"Tidjane Salaün","projected":51.6,"known":true,"share":0.041,"injury":"","twoWay":false},{"team":"CHO","id":"mcneeli01","player":"Liam McNeeley","projected":49.5,"known":false,"share":0.032,"injury":"","twoWay":false},{"team":"CHO","id":"steinha02","player":"Hannes Steinbach","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"CHO","id":"hallpj01","player":"PJ Hall","projected":49.5,"known":false,"share":0.03,"injury":"","twoWay":true},{"team":"CHO","id":"bosweky01","player":"Kylan Boswell","projected":49.5,"known":false,"share":0.036,"injury":"Out (Knee) - The Hornets listed Boswell as OUT for Saturday's (Oct. 24) game against Miami.","twoWay":true},{"team":"CHO","id":"ajayimi01","player":"Michael Ajayi","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":true},{"team":"CHO","id":"whiteco01","player":"Coby White","projected":51.4,"known":true,"share":0.066,"injury":"Out (Calf) - The Hornets listed White as OUT for Saturday's (Oct. 24) game against Miami.","twoWay":false},{"team":"CHO","id":"knuepko01","player":"Kon Knueppel","projected":66.5,"known":true,"share":0.084,"injury":"Out (Hamstring) - The Hornets listed Knueppel as OUT for Saturday's (Oct. 24) game against Miami.","twoWay":false},{"team":"CHO","id":"willigr01","player":"Grant Williams","projected":49.7,"known":true,"share":0.053,"injury":"Out (Hamstring) - The Hornets listed Williams as OUT for Saturday's (Oct. 24) game against Miami.","twoWay":false},{"team":"CLE","id":"mitchdo01","player":"Donovan Mitchell","projected":66.7,"known":true,"share":0.099,"injury":"","twoWay":false},{"team":"CLE","id":"mobleev01","player":"Evan Mobley","projected":66.9,"known":true,"share":0.095,"injury":"","twoWay":false},{"team":"CLE","id":"allenja01","player":"Jarrett Allen","projected":63.0,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"CLE","id":"hardeja01","player":"James Harden","projected":63.1,"known":true,"share":0.103,"injury":"","twoWay":false},{"team":"CLE","id":"hezonma01","player":"Mario Hezonja","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":false},{"team":"CLE","id":"watsope01","player":"Peyton Watson","projected":52.0,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"CLE","id":"tysonja01","player":"Jaylon Tyson","projected":56.8,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"CLE","id":"merrisa01","player":"Sam Merrill","projected":52.4,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"CLE","id":"proctty01","player":"Tyrese Proctor","projected":51.6,"known":true,"share":0.032,"injury":"","twoWay":false},{"team":"CLE","id":"portecr01","player":"Craig Porter Jr.","projected":51.5,"known":true,"share":0.053,"injury":"","twoWay":false},{"team":"CLE","id":"enarutr01","player":"Tristan Enaruna","projected":49.5,"known":false,"share":0.028,"injury":"","twoWay":true},{"team":"CLE","id":"minixri01","player":"Riley Minix","projected":49.5,"known":false,"share":0.019,"injury":"","twoWay":true},{"team":"CLE","id":"diopkh01","player":"Khalifa Diop","projected":49.5,"known":false,"share":0.04,"injury":"Out (Knee) - Diop is listed as Out for Saturday's (Oct. 24) game against the Nets.","twoWay":false},{"team":"CLE","id":"bryanth01","player":"Thomas Bryant","projected":49.6,"known":true,"share":0.036,"injury":"","twoWay":false},{"team":"CLE","id":"thomame01","player":"Meleek Thomas","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":false},{"team":"CLE","id":"udehjer01","player":"Ernest Udeh Jr.","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":true},{"team":"CLE","id":"tomlina01","player":"Nae'Qwan Tomlin","projected":49.3,"known":true,"share":0.047,"injury":"Out (Back) - The Cavaliers said on Tuesday (Oct. 20) that Tomlin will miss at least 3-4 weeks with lower back stress reaction.","twoWay":false},{"team":"DAL","id":"washipj01","player":"P.J. Washington","projected":48.8,"known":true,"share":0.083,"injury":"","twoWay":false},{"team":"DAL","id":"marshna01","player":"Naji Marshall","projected":51.8,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"DAL","id":"sassema01","player":"Marcus Sasser","projected":50.3,"known":true,"share":0.032,"injury":"","twoWay":false},{"team":"DAL","id":"chrisma02","player":"Max Christie","projected":52.3,"known":true,"share":0.077,"injury":"","twoWay":false},{"team":"DAL","id":"risacza01","player":"Zaccharie Risacher","projected":51.4,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"DAL","id":"delarse01","player":"Sergio de Larrea","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"DAL","id":"johnsmo01","player":"Morez Johnson Jr.","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"DAL","id":"gaffoda01","player":"Daniel Gafford","projected":56.6,"known":true,"share":0.058,"injury":"","twoWay":false},{"team":"DAL","id":"cissemo01","player":"Moussa Cissé","projected":50.6,"known":true,"share":0.037,"injury":"","twoWay":false},{"team":"DAL","id":"flaggco01","player":"Cooper Flagg","projected":59.4,"known":true,"share":0.089,"injury":"Out (Shoulder) - Flagg is listed as OUT for Saturday's (Oct. 24) game against the Spurs.","twoWay":false},{"team":"DAL","id":"irvinky01","player":"Kyrie Irving","projected":58.6,"known":true,"share":0.096,"injury":"Out (Knee) - Irving is listed as Out for Saturday's (Oct. 24) game against the Spurs.","twoWay":false},{"team":"DAL","id":"lawalto01","player":"Tobi Lawal","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":true},{"team":"DAL","id":"claytwa01","player":"Walter Clayton","projected":47.0,"known":true,"share":0.054,"injury":"","twoWay":true},{"team":"DAL","id":"howarje01","player":"Jett Howard","projected":50.4,"known":true,"share":0.034,"injury":"","twoWay":true},{"team":"DAL","id":"aldamsa01","player":"Santi Aldama","projected":53.8,"known":true,"share":0.074,"injury":"Out (Knee) - Aldama is listed as OUT for Saturday's (Oct. 24) game against the Spurs.","twoWay":false},{"team":"DAL","id":"biberta01","player":"Tarik Biberovic","projected":49.5,"known":false,"share":0.036,"injury":"Out (Heel) - Biberovic is listed as OUT for Saturday's (Oct. 24) game against the Spurs.","twoWay":false},{"team":"DAL","id":"martica02","player":"Caleb Martin","projected":45.6,"known":true,"share":0.039,"injury":"Out (Thumb) - Martin is listed as OUT for Saturday's (Oct. 24) game against the Spurs.","twoWay":false},{"team":"DAL","id":"livelde01","player":"Dereck Lively II","projected":58.0,"known":true,"share":0.044,"injury":"Out (Foot) - Lively II is listed as OUT for Saturday's (Oct. 24) game against the Spurs.","twoWay":false},{"team":"DEN","id":"jokicni01","player":"Nikola Jokić","projected":94.1,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"DEN","id":"murraja01","player":"Jamal Murray","projected":66.3,"known":true,"share":0.098,"injury":"","twoWay":false},{"team":"DEN","id":"gordoaa01","player":"Aaron Gordon","projected":52.3,"known":true,"share":0.077,"injury":"","twoWay":false},{"team":"DEN","id":"derozde01","player":"DeMar DeRozan","projected":53.2,"known":true,"share":0.086,"injury":"","twoWay":false},{"team":"DEN","id":"braunch01","player":"Christian Braun","projected":55.4,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"DEN","id":"brazitr01","player":"Trevon Brazile","projected":49.5,"known":false,"share":0.038,"injury":"","twoWay":false},{"team":"DEN","id":"baglema01","player":"Marvin Bagley III","projected":53.6,"known":true,"share":0.055,"injury":"","twoWay":false},{"team":"DEN","id":"jonesty01","player":"Tyus Jones","projected":48.5,"known":true,"share":0.04,"injury":"","twoWay":false},{"team":"DEN","id":"hopkibr01","player":"Bryce Hopkins","projected":49.5,"known":false,"share":0.038,"injury":"","twoWay":true},{"team":"DEN","id":"johnsca02","player":"Cameron Johnson","projected":53.5,"known":true,"share":0.085,"injury":"Out (Ankle) - Johnson is listed as Out for Saturday's (Oct. 24) game against the Pelicans.","twoWay":false},{"team":"DEN","id":"nembhry01","player":"Ryan Nembhard","projected":48.1,"known":true,"share":0.054,"injury":"","twoWay":true},{"team":"DEN","id":"diallal01","player":"Alpha Diallo","projected":49.5,"known":false,"share":0.038,"injury":"Out (Wrist) - Diallo is listed as Out for Saturday's (Oct. 24) game against the Pelicans.","twoWay":false},{"team":"DEN","id":"whitmca01","player":"Cam Whitmore","projected":52.8,"known":true,"share":0.047,"injury":"","twoWay":true},{"team":"DEN","id":"holmeda01","player":"DaRon Holmes","projected":49.5,"known":false,"share":0.023,"injury":"","twoWay":false},{"team":"DEN","id":"jonessp01","player":"Spencer Jones","projected":51.5,"known":true,"share":0.061,"injury":"Out (Hamstring) - Jones is listed as Out for Saturday's (Oct. 24) game against the Pelicans.","twoWay":false},{"team":"DEN","id":"nnajize01","player":"Zeke Nnaji","projected":49.2,"known":true,"share":0.033,"injury":"","twoWay":false},{"team":"DEN","id":"strawju01","player":"Julian Strawther","projected":50.0,"known":true,"share":0.042,"injury":"Out (Knee) - The Nuggets reported on Friday (Oct. 16) that Strawther will be OUT for six weeks due to a knee injury.","twoWay":false},{"team":"DET","id":"cunnica01","player":"Cade Cunningham","projected":67.1,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"DET","id":"robindu01","player":"Duncan Robinson","projected":54.6,"known":true,"share":0.078,"injury":"","twoWay":false},{"team":"DET","id":"collijo01","player":"John Collins","projected":55.2,"known":true,"share":0.077,"injury":"","twoWay":false},{"team":"DET","id":"durenja01","player":"Jalen Duren","projected":69.2,"known":true,"share":0.08,"injury":"Out (Hamstring) - Duren is listed as OUT for Sunday's (Oct. 25) game against the 76ers.","twoWay":false},{"team":"DET","id":"reedpa01","player":"Paul Reed","projected":54.0,"known":true,"share":0.04,"injury":"","twoWay":false},{"team":"DET","id":"greenja02","player":"Javonte Green","projected":52.2,"known":true,"share":0.05,"injury":"","twoWay":false},{"team":"DET","id":"joeis01","player":"Isaiah Joe","projected":56.7,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"DET","id":"jenkida01","player":"Daniss Jenkins","projected":49.3,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"DET","id":"thompau01","player":"Ausar Thompson","projected":58.1,"known":true,"share":0.074,"injury":"Day To Day (Ankle) - Thompson is listed as Questionable for Sunday's (Oct. 25) game against the 76ers.","twoWay":false},{"team":"DET","id":"hollaro01","player":"Ron Holland","projected":50.7,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"DET","id":"huertke01","player":"Kevin Huerter","projected":50.1,"known":true,"share":0.064,"injury":"","twoWay":false},{"team":"DET","id":"smithto05","player":"Tolu Smith","projected":49.5,"known":false,"share":0.026,"injury":"","twoWay":false},{"team":"DET","id":"okorieb01","player":"Ebuka Okorie","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":false},{"team":"DET","id":"onyenug01","player":"Ugonna Onyenso","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":true},{"team":"DET","id":"princta02","player":"Taurean Prince","projected":48.2,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"DET","id":"harklej01","player":"Elijah Harkless","projected":48.1,"known":true,"share":0.06,"injury":"","twoWay":true},{"team":"DET","id":"laniech01","player":"Chaz Lanier","projected":49.5,"known":false,"share":0.022,"injury":"","twoWay":false},{"team":"DET","id":"jonesis01","player":"Isaac Jones","projected":49.5,"known":false,"share":0.015,"injury":"","twoWay":true},{"team":"GSW","id":"lendeya01","player":"Yaxel Lendeborg","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"GSW","id":"willibr03","player":"Brandon Williams","projected":51.0,"known":true,"share":0.059,"injury":"","twoWay":false},{"team":"GSW","id":"meltode01","player":"De'Anthony Melton","projected":49.0,"known":true,"share":0.061,"injury":"","twoWay":false},{"team":"GSW","id":"ikegr01","player":"Graham Ike","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":true},{"team":"GSW","id":"santogu01","player":"Gui Santos","projected":51.9,"known":true,"share":0.054,"injury":"","twoWay":false},{"team":"GSW","id":"richawi02","player":"Will Richard","projected":51.7,"known":true,"share":0.053,"injury":"","twoWay":false},{"team":"GSW","id":"paytoga02","player":"Gary Payton II","projected":52.5,"known":true,"share":0.041,"injury":"","twoWay":false},{"team":"GSW","id":"niangge01","player":"Georges Niang","projected":47.8,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"GSW","id":"curryst01","player":"Stephen Curry","projected":58.5,"known":true,"share":0.082,"injury":"Out (Rest) - Curry is OUT for Saturday's (Oct. 24) game versus the Suns.","twoWay":false},{"team":"GSW","id":"cryerlj01","player":"LJ Cryer","projected":49.5,"known":false,"share":0.043,"injury":"","twoWay":true},{"team":"GSW","id":"greendr01","player":"Draymond Green","projected":47.5,"known":true,"share":0.073,"injury":"Out (Back) - Green is Out for Saturday's (Oct. 24) game versus the Suns.","twoWay":false},{"team":"GSW","id":"horfoal01","player":"Al Horford","projected":49.4,"known":true,"share":0.057,"injury":"Out (Back) - Horford is OUT for Saturday's (Oct. 24) game versus the Suns.","twoWay":false},{"team":"GSW","id":"leonsma01","player":"Malevy Leons","projected":49.5,"known":false,"share":0.029,"injury":"","twoWay":true},{"team":"GSW","id":"podzibr01","player":"Brandin Podziemski","projected":58.3,"known":true,"share":0.075,"injury":"Out (Back) - Podziemski is OUT for Saturday's (Oct. 24) game versus the Suns.","twoWay":false},{"team":"GSW","id":"bassech01","player":"Charles Bassey","projected":49.5,"known":false,"share":0.031,"injury":"","twoWay":false},{"team":"GSW","id":"porzikr01","player":"Kristaps Porziņģis","projected":51.3,"known":true,"share":0.063,"injury":"Out (Illness) - The Warriors reported on Wednesday (Oct. 21) that Porzingis is dealing with the autoimmune condition postural orthostatic tachycardia syndrome or POTS, per Shams Charania of ESPN.","twoWay":false},{"team":"GSW","id":"butleji01","player":"Jimmy Butler","projected":56.9,"known":true,"share":0.082,"injury":"Out (Knee) - The Warriors said on Friday (Oct. 16) that Butler could return sometime between January and February as he continues recovering from a torn right ACL, per Anthony Slater of ESPN.","twoWay":false},{"team":"GSW","id":"moodymo01","player":"Moses Moody","projected":54.3,"known":true,"share":0.068,"injury":"Out (Knee) - The Warriors reported on Friday (Oct. 16) that Moody is progressing toward a potential return between December and January after rupturing his left patellar tendon in March, per Anthony Slater of ESPN.","twoWay":false},{"team":"HOU","id":"duranke01","player":"Kevin Durant","projected":65.8,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"HOU","id":"sengual01","player":"Alperen Şengün","projected":64.2,"known":true,"share":0.087,"injury":"","twoWay":false},{"team":"HOU","id":"thompam01","player":"Amen Thompson","projected":67.2,"known":true,"share":0.098,"injury":"","twoWay":false},{"team":"HOU","id":"smithja05","player":"Jabari Smith Jr.","projected":56.4,"known":true,"share":0.092,"injury":"","twoWay":false},{"team":"HOU","id":"easonta01","player":"Tari Eason","projected":51.5,"known":true,"share":0.068,"injury":"","twoWay":false},{"team":"HOU","id":"bogdabo01","player":"Bogdan Bogdanović","projected":48.0,"known":true,"share":0.052,"injury":"","twoWay":false},{"team":"HOU","id":"sheppre01","player":"Reed Sheppard","projected":60.4,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"HOU","id":"vanvlfr01","player":"Fred VanVleet","projected":55.9,"known":true,"share":0.092,"injury":"Out (Rest) - VanVleet is OUT for Saturday's (Oct. 24) game versus the Hawks.","twoWay":false},{"team":"HOU","id":"smartma01","player":"Marcus Smart","projected":46.7,"known":true,"share":0.075,"injury":"Out (Forearm) - Smart is Out for Saturday's (Oct. 24) game versus the Hawks.","twoWay":false},{"team":"HOU","id":"crawfis01","player":"Isaiah Crawford","projected":49.5,"known":false,"share":0.017,"injury":"","twoWay":false},{"team":"HOU","id":"capelca01","player":"Clint Capela","projected":49.1,"known":true,"share":0.032,"injury":"","twoWay":false},{"team":"HOU","id":"thornbr01","player":"Bruce Thornton","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"HOU","id":"tateja01","player":"Jae'Sean Tate","projected":48.4,"known":true,"share":0.023,"injury":"","twoWay":false},{"team":"HOU","id":"adamsst01","player":"Steven Adams","projected":46.1,"known":true,"share":0.06,"injury":"Out (Rest) - Adams is OUT for Saturday's (Oct. 24) game versus the Hawks.","twoWay":false},{"team":"HOU","id":"copelqu01","player":"Quadir Copeland","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":true},{"team":"HOU","id":"tshieos01","player":"Oscar Tshiebwe","projected":49.5,"known":false,"share":0.044,"injury":"","twoWay":true},{"team":"HOU","id":"phillju01","player":"Julian Phillips","projected":50.8,"known":true,"share":0.023,"injury":"","twoWay":true},{"team":"IND","id":"siakapa01","player":"Pascal Siakam","projected":55.4,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"IND","id":"halibty01","player":"Tyrese Haliburton","projected":76.3,"known":true,"share":0.089,"injury":"","twoWay":false},{"team":"IND","id":"nembhan01","player":"Andrew Nembhard","projected":49.8,"known":true,"share":0.083,"injury":"","twoWay":false},{"team":"IND","id":"toppiob01","player":"Obi Toppin","projected":57.2,"known":true,"share":0.047,"injury":"","twoWay":false},{"team":"IND","id":"zubaciv01","player":"Ivica Zubac","projected":56.2,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"IND","id":"jacksqu01","player":"Quenton Jackson","projected":49.2,"known":true,"share":0.049,"injury":"","twoWay":false},{"team":"IND","id":"oubreke01","player":"Kelly Oubre Jr.","projected":48.2,"known":true,"share":0.084,"injury":"","twoWay":false},{"team":"IND","id":"walkeja02","player":"Jarace Walker","projected":48.8,"known":true,"share":0.068,"injury":"","twoWay":false},{"team":"IND","id":"nancela02","player":"Larry Nance Jr.","projected":51.6,"known":true,"share":0.034,"injury":"","twoWay":false},{"team":"IND","id":"nesmiaa01","player":"Aaron Nesmith","projected":48.6,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"IND","id":"slawsja01","player":"Jalen Slawson","projected":49.5,"known":false,"share":0.063,"injury":"","twoWay":true},{"team":"IND","id":"sheppbe01","player":"Ben Sheppard","projected":49.3,"known":true,"share":0.057,"injury":"Day To Day (Meniscus) - Sheppard did not play on Friday's (Oct. 23) game against the Mavericks.","twoWay":false},{"team":"IND","id":"huffja01","player":"Jay Huff","projected":52.0,"known":true,"share":0.056,"injury":"","twoWay":false},{"team":"IND","id":"brownko01","player":"Kobe Brown","projected":48.1,"known":true,"share":0.042,"injury":"","twoWay":true},{"team":"IND","id":"smithbr01","player":"Braden Smith","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":true},{"team":"IND","id":"mccontj01","player":"T.J. McConnell","projected":51.6,"known":true,"share":0.046,"injury":"Day To Day (Hamstring) - McConnell did not play on Friday's (Oct. 23) game against the Mavericks.","twoWay":false},{"team":"LAC","id":"garlada01","player":"Darius Garland","projected":53.5,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"LAC","id":"lopezbr01","player":"Brook Lopez","projected":47.8,"known":true,"share":0.058,"injury":"","twoWay":false},{"team":"LAC","id":"wagleke01","player":"Keaton Wagler","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"LAC","id":"hachiru01","player":"Rui Hachimura","projected":51.9,"known":true,"share":0.075,"injury":"","twoWay":false},{"team":"LAC","id":"jonesde02","player":"Derrick Jones Jr.","projected":51.7,"known":true,"share":0.071,"injury":"","twoWay":false},{"team":"LAC","id":"jacksis01","player":"Isaiah Jackson","projected":52.3,"known":true,"share":0.044,"injury":"","twoWay":false},{"team":"LAC","id":"dickgr01","player":"Gradey Dick","projected":49.5,"known":true,"share":0.037,"injury":"","twoWay":false},{"team":"LAC","id":"dunnkr01","player":"Kris Dunn","projected":51.5,"known":true,"share":0.072,"injury":"","twoWay":false},{"team":"LAC","id":"sandeko01","player":"Kobe Sanders","projected":49.6,"known":true,"share":0.053,"injury":"","twoWay":false},{"team":"LAC","id":"milleba01","player":"Baba Miller","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"LAC","id":"pickeja02","player":"Jalen Pickett","projected":48.5,"known":true,"share":0.043,"injury":"","twoWay":true},{"team":"LAC","id":"martini01","player":"Nick Martinelli","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":true},{"team":"LAC","id":"chrisca02","player":"Cam Christie","projected":49.5,"known":false,"share":0.023,"injury":"","twoWay":true},{"team":"LAC","id":"batumni01","player":"Nicolas Batum","projected":47.6,"known":true,"share":0.046,"injury":"","twoWay":false},{"team":"LAC","id":"konanya01","player":"Yanic Konan Niederhäuser","projected":49.5,"known":false,"share":0.027,"injury":"Day To Day (Lisfranc) - NiederhÃ¤user did not play on Friday's (Oct. 23) game against the Lakers.","twoWay":false},{"team":"LAC","id":"ingrabr01","player":"Brandon Ingram","projected":53.6,"known":true,"share":0.089,"injury":"Day To Day (Heel) - Ingram did not play on Friday's (Oct. 23) game against the Lakers.","twoWay":false},{"team":"LAC","id":"strusma01","player":"Max Strus","projected":51.7,"known":true,"share":0.063,"injury":"Out (Foot) - The Clippers reported on Monday (Oct. 5) that Strus to miss at least next 4 weeks with partial tear of the plantar fascia in right foot.","twoWay":false},{"team":"LAC","id":"millejo02","player":"Jordan Miller","projected":52.0,"known":true,"share":0.058,"injury":"Out (Shoulder) - The Clippers said on Wednesday (Aug. 26) that Miller repaired a torn left rotator cuff and will be re-evaluated in six months, per Law Murray of The Athletic.","twoWay":false},{"team":"LAC","id":"bealbr01","player":"Bradley Beal","projected":51.8,"known":true,"share":0.053,"injury":"Day To Day (Knee) - Beal did not play on Friday's (Oct. 23) game against the Lakers.","twoWay":false},{"team":"LAL","id":"doncilu01","player":"Luka Dončić","projected":79.0,"known":true,"share":0.099,"injury":"","twoWay":false},{"team":"LAL","id":"reaveau01","player":"Austin Reaves","projected":60.1,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"LAL","id":"kesslwa01","player":"Walker Kessler","projected":60.1,"known":true,"share":0.085,"injury":"","twoWay":false},{"team":"LAL","id":"willizi02","player":"Ziaire Williams","projected":49.4,"known":true,"share":0.063,"injury":"","twoWay":false},{"team":"LAL","id":"grimequ01","player":"Quentin Grimes","projected":51.8,"known":true,"share":0.081,"injury":"","twoWay":false},{"team":"LAL","id":"thybuma01","player":"Matisse Thybulle","projected":51.8,"known":true,"share":0.044,"injury":"","twoWay":false},{"team":"LAL","id":"mamuksa01","player":"Sandro Mamukelashvili","projected":55.9,"known":true,"share":0.061,"injury":"","twoWay":false},{"team":"LAL","id":"looneke01","player":"Kevon Looney","projected":50.3,"known":true,"share":0.041,"injury":"","twoWay":false},{"team":"LAL","id":"laravja01","player":"Jake LaRavia","projected":51.0,"known":true,"share":0.069,"injury":"Day To Day (Ankle) - LaRavia did not play on Friday's (Oct. 23) game against the Clippers.","twoWay":false},{"team":"LAL","id":"sextoco01","player":"Collin Sexton","projected":53.2,"known":true,"share":0.066,"injury":"","twoWay":false},{"team":"LAL","id":"hardyja02","player":"Jaden Hardy","projected":48.3,"known":true,"share":0.044,"injury":"","twoWay":false},{"team":"LAL","id":"manonch01","player":"Chris Mañon","projected":49.5,"known":false,"share":0.014,"injury":"","twoWay":true},{"team":"LAL","id":"jamesbr02","player":"Bronny James","projected":49.5,"known":false,"share":0.025,"injury":"","twoWay":false},{"team":"LAL","id":"carrca01","player":"Cameron Carr","projected":49.5,"known":false,"share":0.038,"injury":"Day To Day (Oblique) - Carr did not play on Friday's (Oct. 23) game against the Clippers.","twoWay":false},{"team":"LAL","id":"okereak01","player":"AK Okereke","projected":49.5,"known":false,"share":0.038,"injury":"","twoWay":true},{"team":"LAL","id":"smithni01","player":"Nick Smith Jr.","projected":47.4,"known":true,"share":0.035,"injury":"","twoWay":false},{"team":"LAL","id":"thierad01","player":"Adou Thiero","projected":49.5,"known":false,"share":0.017,"injury":"Day To Day (Knee) - Thiero did not play on Friday's (Oct. 23) game against the Clippers.","twoWay":false},{"team":"LAL","id":"kalumar01","player":"Arthur Kaluma","projected":49.5,"known":false,"share":0.038,"injury":"","twoWay":true},{"team":"LAL","id":"vandeja01","player":"Jarred Vanderbilt","projected":48.7,"known":true,"share":0.048,"injury":"","twoWay":false},{"team":"MEM","id":"jeromty01","player":"Ty Jerome","projected":58.2,"known":true,"share":0.059,"injury":"","twoWay":false},{"team":"MEM","id":"boozeca02","player":"Cameron Boozer","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"MEM","id":"wellsja01","player":"Jaylen Wells","projected":49.7,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"MEM","id":"grantje01","player":"Jerami Grant","projected":48.8,"known":true,"share":0.078,"injury":"","twoWay":false},{"team":"MEM","id":"pippesc02","player":"Scotty Pippen Jr.","projected":56.1,"known":true,"share":0.056,"injury":"","twoWay":false},{"team":"MEM","id":"jacksgg01","player":"GG Jackson II","projected":52.0,"known":true,"share":0.056,"injury":"","twoWay":false},{"team":"MEM","id":"edeyza01","player":"Zach Edey","projected":55.0,"known":true,"share":0.068,"injury":"","twoWay":false},{"team":"MEM","id":"spencca01","player":"Cam Spencer","projected":59.5,"known":true,"share":0.063,"injury":"","twoWay":false},{"team":"MEM","id":"postqu01","player":"Quinten Post","projected":50.1,"known":true,"share":0.046,"injury":"","twoWay":false},{"team":"MEM","id":"cowarce01","player":"Cedric Coward","projected":55.4,"known":true,"share":0.068,"injury":"Day To Day (Wrist) - Coward did not play on Friday's (Oct. 23) game against the Warriors.","twoWay":false},{"team":"MEM","id":"stewais01","player":"Isaiah Stewart","projected":52.2,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"MEM","id":"murrakr01","player":"Kris Murray","projected":47.1,"known":true,"share":0.062,"injury":"","twoWay":false},{"team":"MEM","id":"mashaja01","player":"Jahmai Mashack","projected":48.0,"known":true,"share":0.057,"injury":"","twoWay":true},{"team":"MEM","id":"smallja01","player":"Javon Small","projected":52.6,"known":true,"share":0.053,"injury":"","twoWay":true},{"team":"MEM","id":"coopeca02","player":"Carson Cooper","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":true},{"team":"MEM","id":"lopezka01","player":"Karim López","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"MEM","id":"prospol01","player":"Olivier-Maxence Prosper","projected":52.2,"known":true,"share":0.049,"injury":"","twoWay":false},{"team":"MEM","id":"hendrta01","player":"Taylor Hendricks","projected":51.5,"known":true,"share":0.05,"injury":"","twoWay":false},{"team":"MIA","id":"antetgi01","player":"Giannis Antetokounmpo","projected":69.3,"known":true,"share":0.086,"injury":"","twoWay":false},{"team":"MIA","id":"mitchda01","player":"Davion Mitchell","projected":51.1,"known":true,"share":0.085,"injury":"","twoWay":false},{"team":"MIA","id":"adebaba01","player":"Bam Adebayo","projected":57.9,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"MIA","id":"portibo01","player":"Bobby Portis","projected":51.1,"known":true,"share":0.072,"injury":"","twoWay":false},{"team":"MIA","id":"thompkl01","player":"Klay Thompson","projected":45.2,"known":true,"share":0.065,"injury":"","twoWay":false},{"team":"MIA","id":"larsspe01","player":"Pelle Larsson","projected":51.9,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"MIA","id":"wiggian01","player":"Andrew Wiggins","projected":52.6,"known":true,"share":0.09,"injury":"","twoWay":false},{"team":"MIA","id":"hardati02","player":"Tim Hardaway Jr.","projected":49.5,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"MIA","id":"jovicni01","player":"Nikola Jović","projected":50.3,"known":true,"share":0.051,"injury":"","twoWay":false},{"team":"MIA","id":"conwery01","player":"Ryan Conwell","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":false},{"team":"MIA","id":"richani01","player":"Nick Richards","projected":48.2,"known":true,"share":0.043,"injury":"","twoWay":false},{"team":"MIA","id":"gardnmy01","player":"Myron Gardner","projected":49.5,"known":false,"share":0.027,"injury":"","twoWay":false},{"team":"MIA","id":"fontesi01","player":"Simone Fontecchio","projected":47.5,"known":true,"share":0.05,"injury":"","twoWay":false},{"team":"MIA","id":"smithdr01","player":"Dru Smith","projected":51.1,"known":true,"share":0.049,"injury":"","twoWay":false},{"team":"MIA","id":"donaltr01","player":"Tre Donaldson","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":true},{"team":"MIA","id":"youngja05","player":"Jahmir Young","projected":49.5,"known":false,"share":0.012,"injury":"","twoWay":false},{"team":"MIA","id":"goldivl01","player":"Vladislav Goldin","projected":49.5,"known":false,"share":0.008,"injury":"","twoWay":true},{"team":"MIA","id":"johnske10","player":"Keshad Johnson","projected":49.5,"known":false,"share":0.026,"injury":"","twoWay":true},{"team":"MIL","id":"herroty01","player":"Tyler Herro","projected":54.9,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"MIL","id":"jaqueja01","player":"Jaime Jaquez Jr.","projected":52.2,"known":true,"share":0.072,"injury":"","twoWay":false},{"team":"MIL","id":"wareke01","player":"Kel'el Ware","projected":59.1,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"MIL","id":"rolliry01","player":"Ryan Rollins","projected":56.4,"known":true,"share":0.082,"injury":"","twoWay":false},{"team":"MIL","id":"jakucka01","player":"Kasparas Jakučionis","projected":54.3,"known":true,"share":0.046,"injury":"","twoWay":false},{"team":"MIL","id":"kuzmaky01","player":"Kyle Kuzma","projected":45.4,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"MIL","id":"greenaj01","player":"A.J. Green","projected":49.6,"known":true,"share":0.074,"injury":"","twoWay":false},{"team":"MIL","id":"burribr01","player":"Brayden Burries","projected":49.5,"known":false,"share":0.035,"injury":"","twoWay":false},{"team":"MIL","id":"turnemy01","player":"Myles Turner","projected":51.6,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"MIL","id":"diengou01","player":"Ousmane Dieng","projected":47.4,"known":true,"share":0.049,"injury":"","twoWay":false},{"team":"MIL","id":"amentna01","player":"Nate Ament","projected":49.5,"known":false,"share":0.035,"injury":"","twoWay":false},{"team":"MIL","id":"simsje01","player":"Jericho Sims","projected":50.4,"known":true,"share":0.05,"injury":"","twoWay":false},{"team":"MIL","id":"leverca01","player":"Caris LeVert","projected":49.7,"known":true,"share":0.049,"injury":"","twoWay":false},{"team":"MIL","id":"markobo01","player":"Bogoljub Markovic","projected":49.5,"known":false,"share":0.035,"injury":"","twoWay":false},{"team":"MIL","id":"joneska03","player":"Kam Jones","projected":48.1,"known":true,"share":0.042,"injury":"","twoWay":true},{"team":"MIL","id":"trentga02","player":"Gary Trent Jr.","projected":45.9,"known":true,"share":0.054,"injury":"","twoWay":false},{"team":"MIL","id":"ryanco01","player":"Cormac Ryan","projected":49.5,"known":false,"share":0.063,"injury":"","twoWay":true},{"team":"MIL","id":"nancepe01","player":"Pete Nance","projected":50.5,"known":true,"share":0.04,"injury":"","twoWay":true},{"team":"MIN","id":"edwaran01","player":"Anthony Edwards","projected":67.6,"known":true,"share":0.106,"injury":"","twoWay":false},{"team":"MIN","id":"ballla01","player":"LaMelo Ball","projected":60.0,"known":true,"share":0.085,"injury":"","twoWay":false},{"team":"MIN","id":"mcdanja02","player":"Jaden McDaniels","projected":55.4,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"MIN","id":"dosunay01","player":"Ayo Dosunmu","projected":55.9,"known":true,"share":0.083,"injury":"","twoWay":false},{"team":"MIN","id":"shannte01","player":"Terrence Shannon Jr.","projected":49.3,"known":true,"share":0.038,"injury":"","twoWay":false},{"team":"MIN","id":"kuminjo01","player":"Jonathan Kuminga","projected":50.6,"known":true,"share":0.07,"injury":"","twoWay":false},{"team":"MIN","id":"goberru01","player":"Rudy Gobert","projected":63.1,"known":true,"share":0.095,"injury":"","twoWay":false},{"team":"MIN","id":"lylestr01","player":"Trey Lyles","projected":49.2,"known":true,"share":0.059,"injury":"","twoWay":false},{"team":"MIN","id":"berinjo01","player":"Joan Beringer","projected":49.5,"known":false,"share":0.024,"injury":"","twoWay":false},{"team":"MIN","id":"hylanbo01","player":"Bones Hyland","projected":52.0,"known":true,"share":0.05,"injury":"","twoWay":false},{"team":"MIN","id":"clarkja02","player":"Jaylen Clark","projected":49.9,"known":true,"share":0.04,"injury":"","twoWay":false},{"team":"MIN","id":"willico04","player":"Cody Williams","projected":46.1,"known":true,"share":0.074,"injury":"","twoWay":false},{"team":"MIN","id":"evansis01","player":"Isaiah Evans","projected":49.5,"known":false,"share":0.041,"injury":"","twoWay":false},{"team":"MIN","id":"divindo01","player":"Donte DiVincenzo","projected":57.0,"known":true,"share":0.092,"injury":"Out (Achilles) - DiVincenzo said on Monday (Oct. 5) that he remains confident that he'll return during the 2026-27 season, per Jon Krawczynski of The Athletic.","twoWay":false},{"team":"MIN","id":"pullizy01","player":"Zyon Pullin","projected":49.5,"known":false,"share":0.026,"injury":"","twoWay":true},{"team":"MIN","id":"zikarro01","player":"Rocco Zikarsky","projected":49.5,"known":false,"share":0.022,"injury":"","twoWay":true},{"team":"NOP","id":"willizi01","player":"Zion Williamson","projected":60.8,"known":true,"share":0.072,"injury":"","twoWay":false},{"team":"NOP","id":"murrade01","player":"Dejounte Murray","projected":51.9,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"NOP","id":"beysa01","player":"Saddiq Bey","projected":52.8,"known":true,"share":0.076,"injury":"","twoWay":false},{"team":"NOP","id":"murphtr02","player":"Trey Murphy III","projected":60.1,"known":true,"share":0.086,"injury":"","twoWay":false},{"team":"NOP","id":"queende01","player":"Derik Queen","projected":51.7,"known":true,"share":0.061,"injury":"","twoWay":false},{"team":"NOP","id":"fearsje01","player":"Jeremiah Fears","projected":50.1,"known":true,"share":0.062,"injury":"","twoWay":false},{"team":"NOP","id":"mathube01","player":"Bennedict Mathurin","projected":48.0,"known":true,"share":0.073,"injury":"","twoWay":false},{"team":"NOP","id":"poolejo01","player":"Jordan Poole","projected":47.7,"known":true,"share":0.058,"injury":"","twoWay":false},{"team":"NOP","id":"joneshe01","player":"Herbert Jones","projected":47.4,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"NOP","id":"missiyv01","player":"Yves Missi","projected":50.9,"known":true,"share":0.048,"injury":"Out (Knee) - Missi is listed as OUT for Saturday's (Oct. 24) game against the Nuggets.","twoWay":false},{"team":"NOP","id":"matkoka01","player":"Karlo Matković","projected":54.6,"known":true,"share":0.036,"injury":"","twoWay":false},{"team":"NOP","id":"jordade01","player":"DeAndre Jordan","projected":46.6,"known":true,"share":0.04,"injury":"","twoWay":false},{"team":"NOP","id":"johnsaj01","player":"AJ Johnson","projected":49.8,"known":true,"share":0.023,"injury":"","twoWay":false},{"team":"NOP","id":"mcgowbr01","player":"Bryce McGowens","projected":51.0,"known":true,"share":0.051,"injury":"","twoWay":false},{"team":"NOP","id":"pierrja01","player":"Jaron Pierre Jr.","projected":49.5,"known":false,"share":0.033,"injury":"","twoWay":true},{"team":"NOP","id":"watfotr01","player":"Trendon Watford","projected":49.2,"known":true,"share":0.039,"injury":"","twoWay":false},{"team":"NOP","id":"diama01","player":"Malik Dia","projected":49.5,"known":false,"share":0.033,"injury":"","twoWay":true},{"team":"NOP","id":"reeseju01","player":"Julian Reese","projected":49.5,"known":false,"share":0.075,"injury":"","twoWay":true},{"team":"NYK","id":"townska01","player":"Karl-Anthony Towns","projected":62.6,"known":true,"share":0.09,"injury":"","twoWay":false},{"team":"NYK","id":"brunsja01","player":"Jalen Brunson","projected":64.1,"known":true,"share":0.102,"injury":"","twoWay":false},{"team":"NYK","id":"anunoog01","player":"OG Anunoby","projected":58.8,"known":true,"share":0.097,"injury":"","twoWay":false},{"team":"NYK","id":"hartjo01","player":"Josh Hart","projected":60.5,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"NYK","id":"mcbrimi01","player":"Miles McBride","projected":51.7,"known":true,"share":0.077,"injury":"","twoWay":false},{"team":"NYK","id":"drumman01","player":"Andre Drummond","projected":47.4,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"NYK","id":"shamela01","player":"Landry Shamet","projected":49.7,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"NYK","id":"alvarjo01","player":"Jose Alvarado","projected":49.5,"known":true,"share":0.058,"injury":"","twoWay":false},{"team":"NYK","id":"bridgmi01","player":"Mikal Bridges","projected":59.5,"known":true,"share":0.096,"injury":"","twoWay":false},{"team":"NYK","id":"clarkjo01","player":"Jordan Clarkson","projected":44.3,"known":true,"share":0.052,"injury":"","twoWay":false},{"team":"NYK","id":"wisemja01","player":"James Wiseman","projected":51.0,"known":true,"share":0.042,"injury":"","twoWay":false},{"team":"NYK","id":"dadiepa01","player":"Pacôme Dadiet","projected":49.5,"known":false,"share":0.014,"injury":"","twoWay":false},{"team":"NYK","id":"kolekty01","player":"Tyler Kolek","projected":50.0,"known":true,"share":0.034,"injury":"","twoWay":false},{"team":"NYK","id":"diawamo01","player":"Mohamed Diawara","projected":51.6,"known":true,"share":0.027,"injury":"","twoWay":false},{"team":"NYK","id":"nickety01","player":"Tyler Nickel","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":true},{"team":"NYK","id":"mcculke01","player":"Kevin McCullar Jr.","projected":49.5,"known":false,"share":0.022,"injury":"","twoWay":true},{"team":"NYK","id":"akinsja01","player":"Jaden Akins","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":true},{"team":"OKC","id":"gilgesh01","player":"Shai Gilgeous-Alexander","projected":91.8,"known":true,"share":0.105,"injury":"","twoWay":false},{"team":"OKC","id":"willija06","player":"Jalen Williams","projected":58.1,"known":true,"share":0.09,"injury":"","twoWay":false},{"team":"OKC","id":"holmgch01","player":"Chet Holmgren","projected":67.2,"known":true,"share":0.091,"injury":"","twoWay":false},{"team":"OKC","id":"mccaija01","player":"Jared McCain","projected":51.1,"known":true,"share":0.055,"injury":"","twoWay":false},{"team":"OKC","id":"carusal01","player":"Alex Caruso","projected":52.5,"known":true,"share":0.058,"injury":"","twoWay":false},{"team":"OKC","id":"mitchaj01","player":"Ajay Mitchell","projected":54.7,"known":true,"share":0.082,"injury":"","twoWay":false},{"team":"OKC","id":"wallaca01","player":"Cason Wallace","projected":58.8,"known":true,"share":0.084,"injury":"","twoWay":false},{"team":"OKC","id":"harteis01","player":"Isaiah Hartenstein","projected":57.0,"known":true,"share":0.076,"injury":"","twoWay":false},{"team":"OKC","id":"maraad01","player":"Aday Mara","projected":49.5,"known":false,"share":0.043,"injury":"","twoWay":false},{"team":"OKC","id":"willija07","player":"Jaylin Williams","projected":54.2,"known":true,"share":0.062,"injury":"","twoWay":false},{"team":"OKC","id":"willike04","player":"Kenrich Williams","projected":48.7,"known":true,"share":0.048,"injury":"","twoWay":false},{"team":"OKC","id":"stirtbe01","player":"Bennett Stirtz","projected":49.5,"known":false,"share":0.043,"injury":"","twoWay":false},{"team":"OKC","id":"barnhbr01","player":"Brooks Barnhizer","projected":49.5,"known":false,"share":0.027,"injury":"","twoWay":true},{"team":"OKC","id":"sorbeth01","player":"Thomas Sorber","projected":49.5,"known":false,"share":0.043,"injury":"Day To Day (Knee) - Sorber did not play on Thursday's (Oct. 22) game against the Nuggets.","twoWay":false},{"team":"OKC","id":"topicni01","player":"Nikola Topić","projected":49.5,"known":false,"share":0.051,"injury":"Day To Day (Back) - Topic did not play on Thursday's (Oct. 22) game against the Nuggets.","twoWay":false},{"team":"OKC","id":"dixjo01","player":"Josh Dix","projected":49.5,"known":false,"share":0.043,"injury":"","twoWay":true},{"team":"ORL","id":"banchpa01","player":"Paolo Banchero","projected":57.1,"known":true,"share":0.102,"injury":"Out (Ankle) - The Magic reported on Saturday (Oct. 24) that Banchero will miss approximately 4-6 weeks with a right high ankle sprain.","twoWay":false},{"team":"ORL","id":"cartewe01","player":"Wendell Carter Jr.","projected":52.1,"known":true,"share":0.086,"injury":"","twoWay":false},{"team":"ORL","id":"wagnefr01","player":"Franz Wagner","projected":55.3,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"ORL","id":"banede01","player":"Desmond Bane","projected":60.8,"known":true,"share":0.099,"injury":"","twoWay":false},{"team":"ORL","id":"suggsja01","player":"Jalen Suggs","projected":55.9,"known":true,"share":0.081,"injury":"","twoWay":false},{"team":"ORL","id":"dasiltr01","player":"Tristan Da Silva","projected":50.1,"known":true,"share":0.073,"injury":"","twoWay":false},{"team":"ORL","id":"bitadgo01","player":"Goga Bitadze","projected":54.5,"known":true,"share":0.045,"injury":"","twoWay":false},{"team":"ORL","id":"richaja02","player":"Jase Richardson","projected":52.4,"known":true,"share":0.032,"injury":"","twoWay":false},{"team":"ORL","id":"cainja01","player":"Jamal Cain","projected":49.3,"known":true,"share":0.036,"injury":"","twoWay":false},{"team":"ORL","id":"vucevni01","player":"Nikola Vučević","projected":53.2,"known":true,"share":0.083,"injury":"","twoWay":false},{"team":"ORL","id":"castlco01","player":"Colin Castleton","projected":49.5,"known":false,"share":0.016,"injury":"","twoWay":true},{"team":"ORL","id":"moralal01","player":"Alex Morales","projected":49.5,"known":false,"share":0.018,"injury":"","twoWay":true},{"team":"ORL","id":"carteje01","player":"Jevon Carter","projected":46.8,"known":true,"share":0.048,"injury":"","twoWay":false},{"team":"ORL","id":"nelsoiz01","player":"Izaiyah Nelson","projected":49.5,"known":false,"share":0.04,"injury":"Out (Ankle) - Nelson is listed as OUT for Sunday's (Oct. 25) game against the Knicks.","twoWay":true},{"team":"ORL","id":"pendano01","player":"Noah Penda","projected":50.4,"known":true,"share":0.038,"injury":"Out (Hamstring) - The Magic reported on Saturday (Oct. 17) that Penda suffered a partially torn right hamstring and there are no updates on a timetable for return yet, per Jason Beede of the Orlando Sentinel.","twoWay":false},{"team":"ORL","id":"isaacjo01","player":"Jonathan Isaac","projected":49.9,"known":true,"share":0.029,"injury":"Out (Knee) - Isaac is listed as OUT for Sunday's (Oct. 25) game against the Knicks.","twoWay":false},{"team":"ORL","id":"blackan01","player":"Anthony Black","projected":53.1,"known":true,"share":0.088,"injury":"Day To Day (Ankle) - Black is listed as Questionable for Sunday's (Oct. 25) game against the Knicks.","twoWay":false},{"team":"PHI","id":"maxeyty01","player":"Tyrese Maxey","projected":68.0,"known":true,"share":0.102,"injury":"","twoWay":false},{"team":"PHI","id":"brownja02","player":"Jaylen Brown","projected":58.4,"known":true,"share":0.092,"injury":"","twoWay":false},{"team":"PHI","id":"embiijo01","player":"Joel Embiid","projected":52.7,"known":true,"share":0.085,"injury":"","twoWay":false},{"team":"PHI","id":"edgecvj01","player":"VJ Edgecombe","projected":57.7,"known":true,"share":0.094,"injury":"","twoWay":false},{"team":"PHI","id":"caldwke01","player":"Kentavious Caldwell-Pope","projected":47.0,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"PHI","id":"simonan01","player":"Anfernee Simons","projected":50.5,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"PHI","id":"walkeja01","player":"Jabari Walker","projected":50.2,"known":true,"share":0.032,"injury":"","twoWay":false},{"team":"PHI","id":"bonaad01","player":"Adem Bona","projected":51.9,"known":true,"share":0.047,"injury":"","twoWay":false},{"team":"PHI","id":"jamesle01","player":"LeBron James","projected":64.0,"known":true,"share":0.089,"injury":"Out (Back) - James is listed as OUT for Saturday's (Oct. 24) game against the Bucks.","twoWay":false},{"team":"PHI","id":"wadede01","player":"Dean Wade","projected":50.9,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"PHI","id":"philola01","player":"Labaron Philon Jr.","projected":49.5,"known":false,"share":0.036,"injury":"","twoWay":false},{"team":"PHI","id":"loveca01","player":"Caleb Love","projected":47.5,"known":true,"share":0.055,"injury":"","twoWay":true},{"team":"PHI","id":"edwarju01","player":"Justin Edwards","projected":51.3,"known":true,"share":0.041,"injury":"","twoWay":false},{"team":"PHI","id":"ruperra01","player":"Rayan Rupert","projected":48.9,"known":true,"share":0.045,"injury":"","twoWay":true},{"team":"PHI","id":"barlodo01","player":"Dominick Barlow","projected":54.6,"known":true,"share":0.064,"injury":"Out (Back) - The 76ers said on Monday (Oct. 19) Barlow is set to miss at least 2 weeks due to a back injury, per Adam Aaronson of PhillyVoice.com.","twoWay":false},{"team":"PHI","id":"fallta01","player":"Tacko Fall","projected":49.5,"known":false,"share":0.036,"injury":"Out (Hip) - Fall is listed as Out for Saturday's (Oct. 24) game against the Bucks.","twoWay":true},{"team":"PHO","id":"bookede01","player":"Devin Booker","projected":58.7,"known":true,"share":0.098,"injury":"","twoWay":false},{"team":"PHO","id":"brookdi01","player":"Dillon Brooks","projected":45.3,"known":true,"share":0.089,"injury":"","twoWay":false},{"team":"PHO","id":"bridgmi02","player":"Miles Bridges","projected":55.3,"known":true,"share":0.091,"injury":"","twoWay":false},{"team":"PHO","id":"greenja05","player":"Jalen Green","projected":51.5,"known":true,"share":0.076,"injury":"","twoWay":false},{"team":"PHO","id":"goodwjo01","player":"Jordan Goodwin","projected":51.9,"known":true,"share":0.066,"injury":"","twoWay":false},{"team":"PHO","id":"maluakh01","player":"Khaman Maluach","projected":49.5,"known":false,"share":0.026,"injury":"","twoWay":false},{"team":"PHO","id":"gilleco01","player":"Collin Gillespie","projected":60.4,"known":true,"share":0.083,"injury":"","twoWay":false},{"team":"PHO","id":"dunnry01","player":"Ryan Dunn","projected":49.6,"known":true,"share":0.057,"injury":"","twoWay":false},{"team":"PHO","id":"reathdu01","player":"Duop Reath","projected":48.1,"known":true,"share":0.024,"injury":"","twoWay":true},{"team":"PHO","id":"kennalu01","player":"Luke Kennard","projected":55.2,"known":true,"share":0.063,"injury":"","twoWay":false},{"team":"PHO","id":"ighodos01","player":"Oso Ighodaro","projected":56.2,"known":true,"share":0.064,"injury":"Out (Hip) - Ighodaro is listed as OUT for Saturday's (Oct. 24) game against the Warriors.","twoWay":false},{"team":"PHO","id":"peatko01","player":"Koa Peat","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":false},{"team":"PHO","id":"spencpa01","player":"Pat Spencer","projected":46.5,"known":true,"share":0.054,"injury":"","twoWay":true},{"team":"PHO","id":"bouyeja01","player":"Jamaree Bouyea","projected":49.6,"known":true,"share":0.041,"injury":"","twoWay":false},{"team":"PHO","id":"flemira01","player":"Rasheer Fleming","projected":50.4,"known":true,"share":0.036,"injury":"","twoWay":false},{"team":"PHO","id":"willima07","player":"Mark Williams","projected":56.8,"known":true,"share":0.069,"injury":"Out (Shoulder) - The Suns said on Friday (Sept. 11) that Williams underwent surgery to repair a torn labrum in his left shoulder and will miss an extended period of time, per Shams Charania of ESPN.","twoWay":false},{"team":"PHO","id":"timmedr01","player":"Drew Timme","projected":49.5,"known":false,"share":0.025,"injury":"","twoWay":true},{"team":"POR","id":"avdijde01","player":"Deni Avdija","projected":60.7,"known":true,"share":0.094,"injury":"","twoWay":false},{"team":"POR","id":"lillada01","player":"Damian Lillard","projected":61.3,"known":true,"share":0.102,"injury":"","twoWay":false},{"team":"POR","id":"camarto01","player":"Toumani Camara","projected":51.8,"known":true,"share":0.094,"injury":"","twoWay":false},{"team":"POR","id":"moranja01","player":"Ja Morant","projected":50.3,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"POR","id":"holidjr01","player":"Jrue Holiday","projected":53.1,"known":true,"share":0.083,"injury":"","twoWay":false},{"team":"POR","id":"hendesc01","player":"Scoot Henderson","projected":49.9,"known":true,"share":0.07,"injury":"","twoWay":false},{"team":"POR","id":"clingdo01","player":"Donovan Clingan","projected":62.5,"known":true,"share":0.077,"injury":"","twoWay":false},{"team":"POR","id":"cissosi01","player":"Sidy Cissoko","projected":46.1,"known":true,"share":0.054,"injury":"","twoWay":false},{"team":"POR","id":"williro04","player":"Robert Williams","projected":56.6,"known":true,"share":0.048,"injury":"","twoWay":false},{"team":"POR","id":"krejcvi01","player":"Vít Krejčí","projected":52.5,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"POR","id":"yangha01","player":"Yang Hansen","projected":49.5,"known":false,"share":0.02,"injury":"","twoWay":false},{"team":"POR","id":"pottemi01","player":"Micah Potter","projected":49.8,"known":true,"share":0.054,"injury":"","twoWay":false},{"team":"POR","id":"kentja01","player":"Jayson Kent","projected":49.5,"known":false,"share":0.012,"injury":"","twoWay":true},{"team":"POR","id":"carlsbr01","player":"Branden Carlson","projected":49.5,"known":false,"share":0.033,"injury":"Day To Day (Concussion Protocol) - Carlson did not play on Friday's (Oct. 23) game against the Kings.","twoWay":false},{"team":"POR","id":"tonjejo01","player":"John Tonje","projected":49.5,"known":false,"share":0.02,"injury":"","twoWay":true},{"team":"POR","id":"youngch01","player":"Chris Youngblood","projected":49.5,"known":false,"share":0.015,"injury":"Day To Day (Ankle) - Youngblood did not play on Friday's (Oct. 23) game against the Kings.","twoWay":true},{"team":"POR","id":"sharpsh01","player":"Shaedon Sharpe","projected":51.0,"known":true,"share":0.083,"injury":"Out (Meniscus) - The Trail Blazers announced on Monday (Aug. 24) that Sharpe expected to miss 6 months with a torn meniscus.","twoWay":false},{"team":"SAC","id":"lavinza01","player":"Zach LaVine","projected":50.2,"known":true,"share":0.093,"injury":"","twoWay":false},{"team":"SAC","id":"acuffda01","player":"Darius Acuff Jr.","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":false},{"team":"SAC","id":"sabondo01","player":"Domantas Sabonis","projected":57.8,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"SAC","id":"achiupr01","player":"Precious Achiuwa","projected":48.6,"known":true,"share":0.07,"injury":"","twoWay":false},{"team":"SAC","id":"murrake02","player":"Keegan Murray","projected":50.3,"known":true,"share":0.102,"injury":"","twoWay":false},{"team":"SAC","id":"sharpem01","player":"Emanuel Sharp","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":false},{"team":"SAC","id":"huntede01","player":"De'Andre Hunter","projected":47.4,"known":true,"share":0.077,"injury":"","twoWay":false},{"team":"SAC","id":"plowdda01","player":"Daeqwon Plowden","projected":48.5,"known":true,"share":0.078,"injury":"","twoWay":false},{"team":"SAC","id":"cliffni01","player":"Nique Clifford","projected":43.0,"known":true,"share":0.074,"injury":"","twoWay":false},{"team":"SAC","id":"karabal01","player":"Alex Karaban","projected":49.5,"known":false,"share":0.04,"injury":"","twoWay":false},{"team":"SAC","id":"monkma01","player":"Malik Monk","projected":50.1,"known":true,"share":0.065,"injury":"","twoWay":false},{"team":"SAC","id":"mogbojo01","player":"Jonathan Mogbo","projected":48.7,"known":true,"share":0.018,"injury":"","twoWay":true},{"team":"SAC","id":"raynama01","player":"Maxime Raynaud","projected":51.7,"known":true,"share":0.078,"injury":"Out (Knee) - The Kings said on Thursday (Oct. 15) that Raynaud will miss at least the first five or six games of the regular season, and potentially longer, per Frankie Cartoscelli of KHTK Sactown Sports 1140.","twoWay":false},{"team":"SAC","id":"hayeski01","player":"Killian Hayes","projected":50.5,"known":true,"share":0.052,"injury":"","twoWay":false},{"team":"SAC","id":"blackle01","player":"Leaky Black","projected":49.5,"known":false,"share":0.085,"injury":"","twoWay":true},{"team":"SAS","id":"wembavi01","player":"Victor Wembanyama","projected":73.3,"known":true,"share":0.084,"injury":"","twoWay":false},{"team":"SAS","id":"harpedy01","player":"Dylan Harper","projected":58.6,"known":true,"share":0.065,"injury":"","twoWay":false},{"team":"SAS","id":"castlst01","player":"Stephon Castle","projected":56.7,"known":true,"share":0.086,"injury":"","twoWay":false},{"team":"SAS","id":"foxde01","player":"De'Aaron Fox","projected":59.8,"known":true,"share":0.089,"injury":"","twoWay":false},{"team":"SAS","id":"vassede01","player":"Devin Vassell","projected":55.2,"known":true,"share":0.088,"injury":"","twoWay":false},{"team":"SAS","id":"champju02","player":"Julian Champagnie","projected":55.9,"known":true,"share":0.08,"injury":"","twoWay":false},{"team":"SAS","id":"johnske04","player":"Keldon Johnson","projected":54.0,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"SAS","id":"kornelu01","player":"Luke Kornet","projected":55.7,"known":true,"share":0.061,"injury":"","twoWay":false},{"team":"SAS","id":"bryanca01","player":"Carter Bryant","projected":50.9,"known":true,"share":0.033,"injury":"","twoWay":false},{"team":"SAS","id":"barneha02","player":"Harrison Barnes","projected":51.0,"known":true,"share":0.074,"injury":"","twoWay":false},{"team":"SAS","id":"gilleja02","player":"Ja'Kobi Gillespie","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":true},{"team":"SAS","id":"reedjta01","player":"Tarris Reed Jr.","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":false},{"team":"SAS","id":"jonesda06","player":"David Jones García","projected":49.5,"known":false,"share":0.018,"injury":"","twoWay":true},{"team":"SAS","id":"brownma05","player":"Maliq Brown","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":true},{"team":"SAS","id":"mclaujo01","player":"Jordan McLaughlin","projected":52.0,"known":true,"share":0.018,"injury":"","twoWay":false},{"team":"SAS","id":"quainja01","player":"Jayden Quaintance","projected":49.5,"known":false,"share":0.039,"injury":"Out (Knee) - The Spurs reported on Monday (Oct. 19) that Quaintance is not yet been cleared for basketball activities, per Matt Guzman of SI.com.","twoWay":false},{"team":"SAS","id":"harrito02","player":"Tobias Harris","projected":53.2,"known":true,"share":0.08,"injury":"Out (Calf) - Harris is listed as OUT for Saturday's (Oct. 24) game against the Mavericks.","twoWay":false},{"team":"TOR","id":"barnesc01","player":"Scottie Barnes","projected":66.2,"known":true,"share":0.103,"injury":"","twoWay":false},{"team":"TOR","id":"barrerj01","player":"RJ Barrett","projected":53.0,"known":true,"share":0.093,"injury":"","twoWay":false},{"team":"TOR","id":"leonaka01","player":"Kawhi Leonard","projected":67.5,"known":true,"share":0.098,"injury":"","twoWay":false},{"team":"TOR","id":"quickim01","player":"Immanuel Quickley","projected":58.1,"known":true,"share":0.098,"injury":"","twoWay":false},{"team":"TOR","id":"walteja01","player":"Ja'Kobe Walter","projected":54.4,"known":true,"share":0.063,"injury":"","twoWay":false},{"team":"TOR","id":"murraco01","player":"Collin Murray-Boyles","projected":57.8,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"TOR","id":"battlja01","player":"Jamison Battle","projected":50.4,"known":true,"share":0.026,"injury":"","twoWay":false},{"team":"TOR","id":"poeltja01","player":"Jakob Poeltl","projected":53.8,"known":true,"share":0.077,"injury":"","twoWay":false},{"team":"TOR","id":"jackstr02","player":"Trayce Jackson-Davis","projected":54.0,"known":true,"share":0.029,"injury":"","twoWay":false},{"team":"TOR","id":"sheadja01","player":"Jamal Shead","projected":46.3,"known":true,"share":0.069,"injury":"","twoWay":false},{"team":"TOR","id":"graveal01","player":"Allen Graves","projected":49.5,"known":false,"share":0.042,"injury":"","twoWay":false},{"team":"TOR","id":"martial01","player":"Alijah Martin","projected":49.5,"known":false,"share":0.019,"injury":"","twoWay":false},{"team":"TOR","id":"bradlja02","player":"Jaden Bradley","projected":49.5,"known":false,"share":0.042,"injury":"","twoWay":false},{"team":"TOR","id":"anderky01","player":"Kyle Anderson","projected":48.6,"known":true,"share":0.061,"injury":"","twoWay":false},{"team":"TOR","id":"smithma02","player":"Malachi Smith","projected":49.5,"known":false,"share":0.073,"injury":"","twoWay":true},{"team":"TOR","id":"bittlna01","player":"Nate Bittle","projected":49.5,"known":false,"share":0.042,"injury":"Out (Foot) - Bittle is listed as OUT for Sunday's (Oct. 25) game against the Timberwolves.","twoWay":true},{"team":"UTA","id":"georgke01","player":"Keyonte George","projected":52.9,"known":true,"share":0.094,"injury":"","twoWay":false},{"team":"UTA","id":"jacksja02","player":"Jaren Jackson Jr.","projected":51.1,"known":true,"share":0.086,"injury":"","twoWay":false},{"team":"UTA","id":"markkla01","player":"Lauri Markkanen","projected":54.1,"known":true,"share":0.098,"injury":"","twoWay":false},{"team":"UTA","id":"peterda02","player":"Darryn Peterson","projected":49.5,"known":false,"share":0.039,"injury":"","twoWay":false},{"team":"UTA","id":"hayesja02","player":"Jaxson Hayes","projected":55.2,"known":true,"share":0.052,"injury":"","twoWay":false},{"team":"UTA","id":"baileac01","player":"Ace Bailey","projected":46.8,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"UTA","id":"colliis01","player":"Isaiah Collier","projected":49.8,"known":true,"share":0.073,"injury":"","twoWay":false},{"team":"UTA","id":"mykhasv01","player":"Svi Mykhailiuk","projected":48.4,"known":true,"share":0.066,"injury":"","twoWay":false},{"team":"UTA","id":"sensabr01","player":"Brice Sensabaugh","projected":49.7,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"UTA","id":"filipky01","player":"Kyle Filipowski","projected":52.5,"known":true,"share":0.067,"injury":"","twoWay":false},{"team":"UTA","id":"okogijo01","player":"Josh Okogie","projected":49.4,"known":true,"share":0.05,"injury":"","twoWay":false},{"team":"UTA","id":"alexatr01","player":"Trey Alexander","projected":49.5,"known":false,"share":0.035,"injury":"","twoWay":true},{"team":"UTA","id":"nurkiju01","player":"Jusuf Nurkić","projected":49.8,"known":true,"share":0.075,"injury":"Out (Foot) - The Jazz said on Wednesday (Oct. 7) that Nurkic will miss at least the next four weeks due to a partial plantar plate tear of second toe in right foot, per Chris Haynes of NBA TV.","twoWay":false},{"team":"UTA","id":"bambamo01","player":"Mo Bamba","projected":49.9,"known":true,"share":0.031,"injury":"","twoWay":false},{"team":"UTA","id":"greenjo02","player":"Josh Green","projected":49.4,"known":true,"share":0.045,"injury":"","twoWay":false},{"team":"UTA","id":"ingraha01","player":"Harrison Ingram","projected":49.5,"known":false,"share":0.011,"injury":"","twoWay":true},{"team":"UTA","id":"bradlto01","player":"Tony Bradley","projected":49.5,"known":false,"share":0.031,"injury":"","twoWay":false},{"team":"WAS","id":"youngtr01","player":"Trae Young","projected":56.2,"known":true,"share":0.07,"injury":"","twoWay":false},{"team":"WAS","id":"davisan02","player":"Anthony Davis","projected":55.1,"known":true,"share":0.085,"injury":"","twoWay":false},{"team":"WAS","id":"georgky01","player":"Kyshawn George","projected":50.3,"known":true,"share":0.079,"injury":"","twoWay":false},{"team":"WAS","id":"johnstr03","player":"Tre Johnson","projected":48.6,"known":true,"share":0.066,"injury":"","twoWay":false},{"team":"WAS","id":"coulibi01","player":"Bilal Coulibaly","projected":50.7,"known":true,"share":0.071,"injury":"","twoWay":false},{"team":"WAS","id":"champju01","player":"Justin Champagnie","projected":53.8,"known":true,"share":0.055,"injury":"","twoWay":false},{"team":"WAS","id":"sarral01","player":"Alex Sarr","projected":51.9,"known":true,"share":0.074,"injury":"","twoWay":false},{"team":"WAS","id":"carrica01","player":"Bub Carrington","projected":45.7,"known":true,"share":0.075,"injury":"","twoWay":false},{"team":"WAS","id":"aytonde01","player":"Deandre Ayton","projected":54.5,"known":true,"share":0.074,"injury":"","twoWay":false},{"team":"WAS","id":"middlkh01","player":"Khris Middleton","projected":44.3,"known":true,"share":0.062,"injury":"","twoWay":false},{"team":"WAS","id":"rileywi01","player":"Will Riley","projected":47.4,"known":true,"share":0.06,"injury":"","twoWay":false},{"team":"WAS","id":"okparfe01","player":"Felix Okpara","projected":49.5,"known":false,"share":0.037,"injury":"","twoWay":true},{"team":"WAS","id":"beekmre01","player":"Reece Beekman","projected":49.5,"known":false,"share":0.035,"injury":"","twoWay":true},{"team":"WAS","id":"gillan01","player":"Anthony Gill","projected":49.2,"known":true,"share":0.047,"injury":"","twoWay":false},{"team":"WAS","id":"manntr01","player":"Tre Mann","projected":48.5,"known":true,"share":0.034,"injury":"","twoWay":false},{"team":"WAS","id":"dybanaj01","player":"AJ Dybantsa","projected":49.5,"known":false,"share":0.037,"injury":"Out (Ankle) - Dybantsa is listed as OUT for Saturday's (Oct. 24) game against the Bulls.","twoWay":false},{"team":"WAS","id":"vukcetr01","player":"Tristan Vukcevic","projected":51.7,"known":true,"share":0.037,"injury":"Out (Hip) - The Wizards said on Thursday (Oct. 1) that Vukcevic is OUT for at least 4 weeks.","twoWay":false}]}</script>
+<script type="application/json" id="exp-data">{
+ "variants": [
+  {
+   "label": "기존 (신인 전원 같은 값)",
+   "maeN": 2.74,
+   "maeW": 6.72,
+   "corrD": 0.545,
+   "corrN": 0.685,
+   "charlotte2026": -10.4
+  },
+  {
+   "label": "+ 드래프트 순번",
+   "maeN": 2.73,
+   "maeW": 6.7,
+   "corrD": 0.548,
+   "corrN": 0.686,
+   "charlotte2026": -10.6
+  },
+  {
+   "label": "+ 500분 미만 기록",
+   "maeN": 2.73,
+   "maeW": 6.72,
+   "corrD": 0.545,
+   "corrN": 0.685,
+   "charlotte2026": -10.4
+  },
+  {
+   "label": "+ 로스터 연속성",
+   "maeN": 2.74,
+   "maeW": 6.72,
+   "corrD": 0.548,
+   "corrN": 0.683,
+   "charlotte2026": -10.4
+  }
+ ],
+ "pickBins": [
+  {
+   "label": "1~3순위",
+   "n": 109,
+   "ndl": 55.6,
+   "mpg": 29.4
+  },
+  {
+   "label": "4~10순위",
+   "n": 259,
+   "ndl": 50.2,
+   "mpg": 23.7
+  },
+  {
+   "label": "11~20순위",
+   "n": 366,
+   "ndl": 48.5,
+   "mpg": 15.6
+  },
+  {
+   "label": "21~30순위",
+   "n": 347,
+   "ndl": 49.5,
+   "mpg": 13.1
+  },
+  {
+   "label": "31~60순위",
+   "n": 699,
+   "ndl": 48.5,
+   "mpg": 11.3
+  },
+  {
+   "label": "미지명·3라운드 이하",
+   "n": 727,
+   "ndl": 48.7,
+   "mpg": 9.8
+  }
+ ],
+ "unknownAvg": {
+  "ndl": 49.8,
+  "mpg": 12.9
+ }
+}</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('team-data').textContent);
+  const X = JSON.parse(document.getElementById('exp-data').textContent);
+  const M = D.model, H = M.holdout;
+  const CHOSEN = H['real_' + M.chosen];
+  const PREV = H.prev;
+
+  const TEAM_KO = {
+    ATL: '애틀랜타', BOS: '보스턴', BRK: '브루클린', CHO: '샬럿', CHI: '시카고', CLE: '클리블랜드',
+    DAL: '댈러스', DEN: '덴버', DET: '디트로이트', GSW: '골든스테이트', HOU: '휴스턴', IND: '인디애나',
+    LAC: 'LA 클리퍼스', LAL: 'LA 레이커스', MEM: '멤피스', MIA: '마이애미', MIL: '밀워키', MIN: '미네소타',
+    NOP: '뉴올리언스', NYK: '뉴욕', OKC: '오클라호마시티', ORL: '올랜도', PHI: '필라델피아', PHO: '피닉스',
+    POR: '포틀랜드', SAC: '새크라멘토', SAS: '샌안토니오', TOR: '토론토', UTA: '유타', WAS: '워싱턴',
+  };
+  const sgn = (v, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+
+  // ── 머리말·각주 ─────────────────────────────────────────
+  const [y0, y1] = D.season.split('-');
+  document.getElementById('season-to').textContent = `${y0}–${y1}`;
+  document.getElementById('season-from').textContent = `${+y0 - 1}–${y0.slice(2)}`;
+  document.getElementById('mae-w').textContent = `±${CHOSEN.maeW.toFixed(1)}승`;
+  document.getElementById('win-coef').textContent = M.winCoef.toFixed(4);
+  const span = ([a, b]) => `${a - 1}-${String(a).slice(2)} ~ ${b - 1}-${String(b).slice(2)}`;
+  document.getElementById('train-span').textContent = span(M.trainSeasons);
+  document.getElementById('test-span').textContent = span(M.holdoutSeasons);
+  document.getElementById('true-d').textContent = H['true_comp'].corrD.toFixed(2);
+  document.getElementById('unknown-avg').textContent =
+    `NDL ${X.unknownAvg.ndl}, 경기당 ${X.unknownAvg.mpg}분`;
+
+  const beat = M.bySeason.filter(s => s.model < s.prev).length;
+  document.getElementById('beat-count').textContent =
+    `${M.bySeason.length}개 시즌 중 ${beat}개 시즌에서 이 모델이 더 정확했습니다.`;
+
+  // ── 핵심 수치 ───────────────────────────────────────────
+  const cells = [
+    ['예상 승수 평균 오차', `<span class="was">${PREV.maeW.toFixed(1)}</span><span class="to">→</span>${CHOSEN.maeW.toFixed(1)}<small>승</small>`, '작년 팀 성적 그대로 → 이 모델'],
+    ['기준선을 이긴 시즌', `${beat}<small> / ${M.bySeason.length}</small>`, `시험 구간 ${span(M.holdoutSeasons)}`],
+    ['순레이팅 상관', `<span class="was">${PREV.corrN.toFixed(2)}</span><span class="to">→</span>${CHOSEN.corrN.toFixed(2)}`, '실제 팀 순레이팅과의 상관'],
+    ['컨퍼런스 상위 6팀 적중', `${CHOSEN.playoff.toFixed(1)}<small> / 12</small>`, `작년 그대로는 ${PREV.playoff.toFixed(1)}`],
+  ];
+  const scores = document.getElementById('scores');
+  cells.forEach(([k, v, sub]) => {
+    const c = el('div', 'score-cell');
+    c.append(el('div', 'k', k));
+    const ve = el('div', 'v'); ve.innerHTML = v; c.append(ve);
+    c.append(el('div', 'sub', sub));
+    scores.append(c);
+  });
+
+  // ── 툴팁 ────────────────────────────────────────────────
+  const tip = document.getElementById('tooltip');
+  function showTip(evt, title, rows) {
+    tip.replaceChildren(el('div', 'tt-title', title));
+    rows.forEach(([key, value, label]) => {
+      const r = el('div', 'tt-row');
+      if (key) { const k = el('span', 'tt-key'); k.style.background = key; r.append(k); }
+      r.append(el('b', null, value), el('span', null, label));
+      tip.append(r);
+    });
+    tip.style.display = 'block';
+    let x, y;
+    if (evt.clientX != null && evt.type !== 'focus') { x = evt.clientX + 14; y = evt.clientY + 14; }
+    else { const b = evt.currentTarget.getBoundingClientRect(); x = b.left + 40; y = b.bottom + 4; }
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(x, innerWidth - w - 8) + 'px';
+    tip.style.top = (y + h > innerHeight - 8 ? y - h - 24 : y) + 'px';
+  }
+  const hideTip = () => { tip.style.display = 'none'; };
+
+  // ── 순위 예측 ───────────────────────────────────────────
+  const MAXW = 75, err = CHOSEN.maeW;
+  const pct = w => Math.max(0, Math.min(100, w / MAXW * 100));
+  const rosterOf = {};
+  D.players.forEach(p => (rosterOf[p.team] = rosterOf[p.team] || []).push(p));
+
+  function rosterPanel(team) {
+    const box = el('div', 'roster');
+    const ps = rosterOf[team].slice().sort((a, b) => b.share - a.share).slice(0, 10);
+    box.append(el('p', null, '출전 비중이 큰 10명. 팀 예측은 이 비중으로 선수 예측을 가중평균한 값에서 출발합니다.'));
+    const t = el('table');
+    const hr = el('tr');
+    ['선수', '예상 NDL', '출전 비중'].forEach(h => hr.append(el('th', null, h)));
+    const th = el('thead'); th.append(hr);
+    const tb = el('tbody');
+    ps.forEach(p => {
+      const tr = el('tr');
+      const name = el('td', null, p.player);
+      if (!p.known) name.append(el('span', 'tag', '기록 없음'));
+      if (p.injury) { const tg = el('span', 'tag', '부상'); tg.title = p.injury; name.append(tg); }
+      tr.append(name, el('td', null, p.projected.toFixed(1)), el('td', null, (p.share * 100).toFixed(1) + '%'));
+      tb.append(tr);
+    });
+    t.append(th, tb);
+    box.append(t);
+    return box;
+  }
+
+  const confs = document.getElementById('confs');
+  [['E', '동부'], ['W', '서부']].forEach(([code, label]) => {
+    const wrap = el('div', 'conf');
+    wrap.append(el('h3', null, `${label} 컨퍼런스`));
+    const list = el('div', 'standings');
+    const head = el('div', 'st-head');
+    head.append(el('span', null, ''), el('span', null, '팀'));
+    const axis = el('span', 'axis');
+    [0, 20, 41, 60].forEach(v => { const i = el('i', null, v); i.style.left = pct(v) + '%'; axis.append(i); });
+    head.append(axis, el('span', 'num', '예상 승'));
+    list.append(head);
+
+    D.teams.filter(t => t.conf === code).sort((a, b) => b.nrtg - a.nrtg).forEach((t, i) => {
+      if (i === 6) list.append(el('div', 'cutline', '플레이오프 직행 · 플레이인'));
+      if (i === 10) list.append(el('div', 'cutline', '플레이인 · 탈락'));
+      const row = el('button', 'st-row');
+      row.type = 'button';
+      row.setAttribute('aria-expanded', 'false');
+      const tm = el('span', 'tm', TEAM_KO[t.team] || t.team);
+      tm.append(el('small', null, t.team));
+      const track = el('span', 'track');
+      const ref = el('span', 'ref'); ref.style.left = pct(41) + '%';
+      const bar = el('span', 'bar'); bar.style.width = pct(t.wins) + '%';
+      const rng = el('span', 'range');
+      rng.style.left = pct(t.wins - err) + '%';
+      rng.style.width = (pct(t.wins + err) - pct(t.wins - err)) + '%';
+      track.append(ref, bar, rng);
+      row.append(el('span', 'rk', i + 1), tm, track, el('span', 'wins', t.wins.toFixed(1)));
+      row.setAttribute('aria-label',
+        `${label} ${i + 1}위 ${TEAM_KO[t.team]}, 예상 ${t.wins.toFixed(1)}승, 순레이팅 ${sgn(t.nrtg)}`);
+      const rows = () => [
+        [null, `${t.wins.toFixed(1)}승`, `범위 ${(t.wins - err).toFixed(0)}~${(t.wins + err).toFixed(0)}승`],
+        [null, sgn(t.ortg), '공격 레이팅 (리그 평균 대비)'],
+        [null, sgn(t.drtg), '수비 레이팅 (낮을수록 좋음)'],
+        [null, sgn(t.nrtg), '순레이팅'],
+      ];
+      const title = `${TEAM_KO[t.team]} · ${label} ${i + 1}위`;
+      row.addEventListener('pointermove', e => showTip(e, title, rows()));
+      row.addEventListener('pointerleave', hideTip);
+      row.addEventListener('focus', e => showTip(e, title, rows()));
+      row.addEventListener('blur', hideTip);
+      let panel = null;
+      row.addEventListener('click', () => {
+        const open = row.getAttribute('aria-expanded') === 'true';
+        row.setAttribute('aria-expanded', String(!open));
+        if (open) { panel.remove(); panel = null; }
+        else { panel = rosterPanel(t.team); row.after(panel); }
+      });
+      list.append(row);
+    });
+    wrap.append(list);
+    confs.append(wrap);
+  });
+
+  // ── 백테스트 덤벨 ───────────────────────────────────────
+  (function dumbbell() {
+    const svg = document.getElementById('dumbbell');
+    const NS = 'http://www.w3.org/2000/svg';
+    const W = 760, L = 70, R = 24, T = 22, ROW = 26;
+    const S = M.bySeason, Hh = T + S.length * ROW + 6;
+    svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+    const xmax = Math.ceil(Math.max(...S.map(s => Math.max(s.prev, s.model))));
+    const x = v => L + (W - L - R) * v / xmax;
+    const mk = (tag, attrs, parent) => {
+      const n = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v));
+      (parent || svg).appendChild(n);
+      return n;
+    };
+    for (let v = 0; v <= xmax; v++) {
+      mk('line', { class: 'gridline', x1: x(v), x2: x(v), y1: T - 6, y2: Hh - 4 });
+      const tx = mk('text', { x: x(v), y: T - 10, 'text-anchor': 'middle' });
+      tx.textContent = v === xmax ? `${v}점 (순레이팅 평균 오차)` : v;
+      if (v === xmax) tx.setAttribute('text-anchor', 'end'), tx.setAttribute('x', x(v));
+    }
+    S.forEach((s, i) => {
+      const cy = T + i * ROW + ROW / 2;
+      const g = mk('g', { class: 'row', tabindex: 0 });
+      g.setAttribute('aria-label', `${s.season}: 이 모델 ${s.model}, 작년 그대로 ${s.prev}`);
+      mk('rect', { class: 'hit', x: 0, y: cy - ROW / 2, width: W, height: ROW }, g);
+      const lab = mk('text', { class: 'row-label', x: L - 12, y: cy + 4, 'text-anchor': 'end' }, g);
+      lab.textContent = s.season;
+      mk('line', { class: 'link', x1: x(s.model), x2: x(s.prev), y1: cy, y2: cy }, g);
+      mk('circle', { class: 'dot-prev', cx: x(s.prev), cy, r: 5.5 }, g);
+      mk('circle', { class: 'dot-model', cx: x(s.model), cy, r: 5.5 }, g);
+      if (i === 0) {   // 첫 줄만 직접 라벨
+        const a = mk('text', { x: x(s.model) - 10, y: cy + 4, 'text-anchor': 'end' }, g);
+        a.textContent = '이 모델';
+        const b = mk('text', { x: x(s.prev) + 10, y: cy + 4 }, g);
+        b.textContent = '작년 그대로';
+      }
+      const rows = () => [
+        ['var(--cat-1)', s.model.toFixed(2), '이 모델'],
+        ['var(--cat-2)', s.prev.toFixed(2), '작년 팀 성적 그대로'],
+        [null, sgn(s.model - s.prev, 2), '차이'],
+      ];
+      g.addEventListener('pointermove', e => showTip(e, `${s.season} 시즌 · 순레이팅 평균 오차`, rows()));
+      g.addEventListener('pointerleave', hideTip);
+      g.addEventListener('focus', e => showTip(e, `${s.season} 시즌 · 순레이팅 평균 오차`, rows()));
+      g.addEventListener('blur', hideTip);
+    });
+  })();
+
+  // ── 모델 비교 ───────────────────────────────────────────
+  const MODELS = [
+    ['zero', '모두 리그 평균', ''],
+    ['prev', '작년 팀 성적 그대로', ''],
+    ['real_' + M.chosen, '로스터 NDL 예측 (이 모델)', 'chosen'],
+    ['orac_' + M.chosen, '(참고) 실제 출전시간을 안다면', 'ref'],
+    ['true_' + M.chosen, '(참고) 선수 성적까지 안다면', 'ref'],
+  ];
+  const cmp = document.getElementById('cmp');
+  const maxW = Math.max(...MODELS.map(([k]) => H[k].maeW));
+  MODELS.forEach(([k, label, cls]) => {
+    const r = el('div', 'cmp-row' + (cls ? ' ' + cls : ''));
+    const meter = el('div', 'meter');
+    const f = el('span', 'fill'); f.style.width = (H[k].maeW / maxW * 100) + '%';
+    meter.append(f);
+    r.append(el('span', 'nm', label), meter, el('span', 'val', H[k].maeW.toFixed(1) + '승'));
+    cmp.append(r);
+  });
+
+  function table(id, head, body, rowCls) {
+    const t = document.getElementById(id);
+    const hr = el('tr'); head.forEach(h => hr.append(el('th', null, h)));
+    const th = el('thead'); th.append(hr);
+    const tb = el('tbody');
+    body.forEach((cells, i) => {
+      const tr = el('tr', rowCls ? rowCls[i] : null);
+      cells.forEach(c => tr.append(el('td', null, c)));
+      tb.append(tr);
+    });
+    t.replaceChildren(th, tb);
+  }
+  const f2 = v => v == null ? '—' : v.toFixed(2), f3 = v => v ? v.toFixed(3) : '—';
+  table('cmp-table',
+    ['모델', '승수 오차', '순레이팅 오차', '순레이팅 상관', '상위 6팀 적중'],
+    MODELS.map(([k, label]) => [label, H[k].maeW.toFixed(1) + '승', f2(H[k].maeN), f3(H[k].corrN),
+                                k === 'zero' || k.startsWith('true') ? '—' : H[k].playoff.toFixed(1) + ' / 12']),
+    MODELS.map(([, , c]) => c));
+
+  table('od-table',
+    ['', '공격 상관', '수비 상관'],
+    [['작년 팀 성적 그대로', f3(PREV.corrO), f3(PREV.corrD)],
+     ['선수 예측만', f3(H.real_comp.corrO), f3(H.real_comp.corrD)],
+     ['+ 작년 팀 레이팅 (이 모델)', f3(CHOSEN.corrO), f3(CHOSEN.corrD)],
+     ['(참고) 그 시즌 실제 선수 기록', f3(H.true_comp.corrO), f3(H.true_comp.corrD)]],
+    ['', '', 'chosen', 'ref']);
+
+  table('pick-table',
+    ['지명', '표본', '신인 시즌 NDL', '경기당 출전'],
+    X.pickBins.map(b => [b.label, b.n.toLocaleString('en-US'), b.ndl.toFixed(1), b.mpg.toFixed(1) + '분']));
+
+  table('var-table',
+    ['', '순레이팅 오차', '승수 오차', '샬럿 25-26'],
+    X.variants.map(v => [v.label, v.maeN.toFixed(2), v.maeW.toFixed(2) + '승', sgn(v.charlotte2026)]));
+})();
+</script>

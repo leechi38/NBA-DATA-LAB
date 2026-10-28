@@ -1,5 +1,9 @@
-﻿<title>NBA DATA LAB — 시즌 시뮬레이션</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+﻿<meta charset="utf-8">
+<title>NBA DATA LAB — 시즌 시뮬레이션</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 __BASE_CSS__
 
@@ -7,8 +11,8 @@ __BASE_CSS__
   .mode-tabs { display: flex; gap: 0; margin: 22px 0 0; border-bottom: 2px solid var(--rule-strong); }
   .mode-tab {
     background: transparent; border: none; color: var(--ink-3);
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.86rem; letter-spacing: 0.06em; text-transform: uppercase;
+
+    font-size: 0.86rem; letter-spacing: 0.04em; text-transform: uppercase;
     padding: 9px 16px; cursor: pointer;
     border-bottom: 2px solid transparent; margin-bottom: -2px;
   }
@@ -22,28 +26,25 @@ __BASE_CSS__
   .setup { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
   .setup .field { display: flex; flex-direction: column; gap: 5px; }
   .setup label {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+    font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3);
   }
   .setup select, .setup input[type=text] { min-width: 160px; }
   .vs {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.86rem; letter-spacing: 0.1em; color: var(--ink-3); padding-bottom: 9px;
+    font-size: 0.86rem; letter-spacing: 0.04em; color: var(--ink-3); padding-bottom: 9px;
   }
   button.sim-btn, button.ghost-btn {
-    font-family: Oswald, system-ui, sans-serif;
-    letter-spacing: 0.06em; text-transform: uppercase;
+    letter-spacing: 0.04em; text-transform: uppercase;
     border-radius: 3px; cursor: pointer; border: none;
   }
-  button.sim-btn { background: var(--accent); color: #fff; padding: 10px 20px; font-size: 0.86rem; font-weight: 500; }
-  button.sim-btn:hover { filter: brightness(1.08); }
-  button.sim-btn:disabled { opacity: 0.45; cursor: default; filter: none; }
+  button.sim-btn { background: var(--accent); color: var(--on-accent); padding: 10px 20px; font-size: 0.86rem; font-weight: 500; }
+  button.sim-btn:hover { background: var(--ink); color: var(--paper); }
+  button.sim-btn:disabled { background: var(--rule); color: var(--ink-3); cursor: default; }
   button.ghost-btn {
     background: transparent; border: 1px solid var(--rule); color: var(--ink-2);
     padding: 7px 13px; font-size: 0.76rem;
   }
   button.ghost-btn:hover { color: var(--accent); border-color: var(--accent); }
-  button.ghost-btn:disabled { opacity: 0.4; cursor: default; color: var(--ink-2); border-color: var(--rule); }
+  button.ghost-btn:disabled { cursor: default; color: var(--ink-3); border-color: var(--rule); }
 
   /* ── 드래프트 ─────────────────────────────────────────── */
   .draft-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
@@ -53,8 +54,7 @@ __BASE_CSS__
     border-radius: 4px; padding: 7px 11px; font-size: 0.88rem; font-family: inherit; min-width: 0; width: 8rem;
   }
   .turn-badge {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.78rem; letter-spacing: 0.05em; padding: 5px 11px;
+    font-size: 0.78rem; letter-spacing: 0.04em; padding: 5px 11px;
     border: 1px solid var(--rule); border-radius: 2px;
   }
   .turn-badge.a { color: var(--cat-1); border-color: var(--cat-1); }
@@ -68,8 +68,7 @@ __BASE_CSS__
   @media (max-width: 640px) { .roster-grid { grid-template-columns: 1fr; } }
   .roster-panel { background: var(--paper); padding: 10px 12px; min-height: 60px; }
   .roster-panel h4 {
-    font-family: Oswald, system-ui, sans-serif;
-    margin: 2px 0 7px; font-size: 0.82rem; letter-spacing: 0.05em; font-weight: 500;
+    margin: 2px 0 7px; font-size: 0.82rem; letter-spacing: 0.04em; font-weight: 500;
   }
   .roster-panel.a h4 { color: var(--cat-1); }
   .roster-panel.b h4 { color: var(--cat-2); }
@@ -86,8 +85,8 @@ __BASE_CSS__
   table.pool-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; white-space: nowrap; }
   table.pool-table thead th {
     position: sticky; top: 0; z-index: 1; background: var(--paper);
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500;
+
+    font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500;
     text-align: right; padding: 8px 10px; color: var(--ink-3);
     border-bottom: 1px solid var(--rule); cursor: pointer;
   }
@@ -100,13 +99,12 @@ __BASE_CSS__
   table.pool-table td:nth-child(-n+3) { text-align: left; font-variant-numeric: normal; }
   table.pool-table tr:hover td { background: var(--surface-sunk); }
   table.pool-table button {
-    background: var(--accent); color: #fff; border: none; border-radius: 2px;
+    background: var(--accent); color: var(--on-accent); border: none; border-radius: 2px;
     padding: 3px 10px; font-size: 0.74rem; cursor: pointer;
-    font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.04em;
+    letter-spacing: 0.04em;
   }
-  .stars { position: relative; display: inline-block; font-size: 0.92em; letter-spacing: 1px; line-height: 1; }
-  .stars-bg { color: var(--rule); }
-  .stars-fg { position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: var(--cat-4); }
+  .stars { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .stars .tf { font-size: 0.9em; }
 
   /* ── 스코어보드: 이 페이지의 주인공 ───────────────────── */
   .scoreboard {
@@ -117,35 +115,31 @@ __BASE_CSS__
   .score-row { display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; }
   .score-team { text-align: center; }
   .score-team .t-name {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.95rem; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+    font-size: 0.95rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--ink-2);
   }
   .score-team .t-score {
-    font-family: Oswald, system-ui, sans-serif;
     font-size: 3.2rem; font-weight: 600; line-height: 1;
     font-variant-numeric: tabular-nums; margin-top: 5px;
   }
   .score-team.a .t-score { color: var(--cat-1); }
   .score-team.b .t-score { color: var(--cat-2); }
   .score-sep {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.9rem; letter-spacing: 0.1em; color: var(--ink-3); text-align: center;
+    font-size: 0.9rem; letter-spacing: 0.04em; color: var(--ink-3); text-align: center;
   }
-  .score-sep .ot-note { display: block; font-size: 0.7rem; margin-top: 3px; letter-spacing: 0.05em; }
+  .score-sep .ot-note { display: block; font-size: 0.7rem; margin-top: 3px; letter-spacing: 0.04em; }
   .period-table { margin: 20px auto 0; border-collapse: collapse; font-size: 0.84rem; }
   .period-table th, .period-table td {
     padding: 6px 13px; text-align: center; font-variant-numeric: tabular-nums;
     border-bottom: 1px solid var(--rule);
   }
   .period-table th {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--ink-3); font-weight: 500;
   }
   .period-table td.team-label {
     text-align: left; font-weight: 600;
-    font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.04em;
+    letter-spacing: 0.04em;
   }
   .period-table tr:last-child td { border-bottom: none; }
 
@@ -155,16 +149,14 @@ __BASE_CSS__
   @media (max-width: 760px) { .box-grid { grid-template-columns: 1fr; } }
   .box-card { overflow-x: auto; }
   .box-card h3 {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.88rem; letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: 0.88rem; letter-spacing: 0.04em; text-transform: uppercase;
     margin: 4px 0 8px; font-weight: 500;
   }
   .box-card.a h3 { color: var(--cat-1); }
   .box-card.b h3 { color: var(--cat-2); }
   table.box-table { border-collapse: collapse; width: 100%; font-size: 0.78rem; white-space: nowrap; }
   table.box-table th {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500;
+    font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500;
     text-align: right; padding: 6px 7px; color: var(--ink-3);
     border-bottom: 1px solid var(--ink-3);
   }
@@ -179,15 +171,13 @@ __BASE_CSS__
   /* ── 플레이바이플레이 ─────────────────────────────────── */
   .log-section { display: none; margin-top: 20px; border-top: 1px solid var(--rule); padding-top: 14px; }
   .log-section h3 {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
     margin: 0 0 10px; color: var(--ink-3); font-weight: 500;
   }
   .log-box { max-height: 380px; overflow-y: auto; font-size: 0.82rem; line-height: 1.7; color: var(--ink-2); }
   .log-box .period-mark {
-    font-family: Oswald, system-ui, sans-serif;
     margin: 10px 0 4px; font-size: 0.72rem; font-weight: 500; color: var(--ink-3);
-    text-transform: uppercase; letter-spacing: 0.1em;
+    text-transform: uppercase; letter-spacing: 0.04em;
     border-top: 1px solid var(--rule); padding-top: 8px;
   }
   .log-box .period-mark:first-child { border-top: none; margin-top: 0; }
@@ -205,12 +195,13 @@ __BASE_CSS__
       <h1>시즌 시뮬레이션</h1>
       <p>실제 기록으로 만든 능력치로 가상 경기를 돌립니다. 실제 팀끼리 붙일 수도, 직접 드래프트로 두 팀을 짜서 대결시킬 수도 있습니다. 슛 구역 데이터가 집계되기 시작한 1996-97 시즌부터 고를 수 있습니다.</p>
       <div class="nav-links">
-        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__HOME_URL__"><span class="tf">🏠</span> 홈</a>
         <a class="nav-link" href="__STATS_URL__">스탯 정리</a>
         <a class="nav-link" href="__NDL_URL__">NDL Score</a>
         <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
         <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
         <a class="nav-link" href="__PROJ_URL__">다음 시즌 예측</a>
+        <a class="nav-link" href="__MODEL_URL__">예측 모델</a>
       </div>
     </header>
 
@@ -716,8 +707,7 @@ __BASE_CSS__
   }
   function starCell(v, max) {
     const stars = toStars(v, max);
-    const pct = (stars / 5) * 100;
-    return `<span class="stars" title="${stars.toFixed(1)} / 5.0"><span class="stars-bg">★★★★★</span><span class="stars-fg" style="width:${pct}%">★★★★★</span></span>`;
+    return `<span class="stars" title="별점 ${stars.toFixed(1)} / 5.0"><span class="tf" aria-hidden="true">⭐</span>${stars.toFixed(1)}</span>`;
   }
 
   const POOL_COLS = [
@@ -741,7 +731,7 @@ __BASE_CSS__
     const rows = players.filter(p => !draft.drafted.has(p.BbrefId) && (!q || p.Player.toLowerCase().includes(q) || p.Team.toLowerCase().includes(q)))
       .sort((x, y) => draft.sortDir * ((col.get(x) ?? 0) > (col.get(y) ?? 0) ? 1 : (col.get(x) ?? 0) < (col.get(y) ?? 0) ? -1 : 0));
     const table = document.getElementById('pool-table');
-    table.innerHTML = '<thead><tr>' + POOL_COLS.map(c => `<th data-key="${c.key}">${c.label}${draft.sortKey === c.key ? (draft.sortDir === -1 ? ' ▼' : ' ▲') : ''}</th>`).join('') + '<th></th></tr></thead>' +
+    table.innerHTML = '<thead><tr>' + POOL_COLS.map(c => `<th data-key="${c.key}">${c.label}${draft.sortKey === c.key ? (draft.sortDir === -1 ? ' <span class="tf">🔽</span>' : ' <span class="tf">🔼</span>') : ''}</th>`).join('') + '<th></th></tr></thead>' +
       '<tbody>' + rows.slice(0, 150).map(p => '<tr>' + POOL_COLS.map(c => `<td>${c.fmt(c.get(p))}</td>`).join('') + `<td><button data-id="${p.BbrefId}">드래프트</button></td></tr>`).join('') + '</tbody>';
     table.querySelectorAll('th[data-key]').forEach(th => th.addEventListener('click', () => {
       const k = th.getAttribute('data-key');

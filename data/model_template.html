@@ -1,0 +1,552 @@
+<meta charset="utf-8">
+<title>예측 모델 — NBA DATA LAB</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
+<style>
+__BASE_CSS__
+
+  section.block { margin-top: 38px; }
+  section.block > h2 { font-size: 1.2rem; margin: 4px 0 4px; }
+  section.block > .lede { margin: 0 0 14px; font-size: 0.9rem; color: var(--ink-2); max-width: 70ch; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  /* ── 핵심 수치 ─────────────────────────────────────────── */
+  .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); }
+  .score-cell { background: var(--paper); padding: 14px 6px 16px; }
+  .score-cell .k { font-size: 0.78rem; color: var(--ink-2); font-weight: 500; }
+  .score-cell .v { font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin-top: 2px; }
+  .score-cell .v .was { color: var(--ink-3); font-size: 1.05rem; font-weight: 500; }
+  .score-cell .v .to { color: var(--ink-3); font-size: 0.95rem; margin: 0 4px; font-weight: 400; }
+  .score-cell .v small { font-size: 0.95rem; font-weight: 600; margin-left: 1px; }
+  .score-cell .sub { font-size: 0.74rem; color: var(--ink-3); }
+
+  /* ── 순위 예측 ─────────────────────────────────────────── */
+  .confs { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px 34px; }
+  .conf h3 { font-size: 1rem; margin: 0 0 6px; font-weight: 700; }
+  .standings { border-top: 2px solid var(--rule-strong); }
+  .st-head, .st-row {
+    display: grid; grid-template-columns: 1.6rem 7.6rem 1fr 3rem;
+    align-items: center; gap: 10px;
+  }
+  .st-head { padding: 6px 0 4px; border-bottom: 1px solid var(--rule); }
+  .st-head span { font-size: 0.7rem; color: var(--ink-3); font-weight: 600; }
+  .st-head .axis { position: relative; height: 1.1em; }
+  .st-head .axis i {
+    position: absolute; top: 0; transform: translateX(-50%);
+    font-style: normal; font-size: 0.68rem; color: var(--ink-3); font-variant-numeric: tabular-nums;
+  }
+  .st-head .num { text-align: right; }
+
+  .st-row {
+    width: 100%; padding: 6px 0; border: 0; border-bottom: 1px solid var(--rule);
+    background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  }
+  .st-row:hover, .st-row[aria-expanded="true"] { background: var(--surface-sunk); }
+  .st-row .rk { font-size: 0.8rem; color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; }
+  .st-row .tm { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st-row .tm small { font-size: 0.68rem; color: var(--ink-3); font-weight: 500; margin-left: 5px; letter-spacing: 0.04em; }
+  .st-row .wins { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .track { position: relative; height: 18px; }
+  .track .ref { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--rule); }
+  .track .range { position: absolute; top: 8px; height: 2px; background: var(--ink-3); }
+  .track .range::before, .track .range::after {
+    content: ""; position: absolute; top: -3px; width: 1px; height: 8px; background: var(--ink-3);
+  }
+  .track .range::before { left: 0; }
+  .track .range::after { right: 0; }
+  .track .bar {
+    position: absolute; left: 0; top: 4px; height: 10px;
+    background: var(--cat-1); border-radius: 0 4px 4px 0;
+  }
+  .cutline {
+    display: flex; align-items: center; gap: 8px; padding: 3px 0;
+    font-size: 0.68rem; color: var(--ink-3); font-weight: 600;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+
+  .roster { border-bottom: 1px solid var(--rule); padding: 8px 0 12px 2.2rem; background: var(--surface-sunk); }
+  .roster p { margin: 0 0 6px; font-size: 0.78rem; color: var(--ink-2); }
+  .roster table { font-size: 0.8rem; }
+  .roster td, .roster th { padding: 4px 8px; }
+  .roster thead th { background: var(--surface-sunk); }
+  .roster td:first-child, .roster th:first-child { text-align: left; }
+  .tag {
+    display: inline-block; font-size: 0.66rem; font-weight: 600; padding: 0 5px; margin-left: 6px;
+    border: 1px solid var(--rule); border-radius: 3px; color: var(--ink-3);
+  }
+
+  .legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 0.78rem; color: var(--ink-2); }
+  .legend-line .key { display: inline-flex; align-items: center; gap: 6px; }
+  .key-bar { width: 16px; height: 10px; background: var(--cat-1); border-radius: 0 3px 3px 0; display: inline-block; }
+  .key-range { width: 18px; height: 2px; background: var(--ink-3); display: inline-block; position: relative; }
+  .key-ref { width: 1px; height: 12px; background: var(--rule-strong); display: inline-block; }
+  .key-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  /* ── 차트 공통 ─────────────────────────────────────────── */
+  svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart text { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .chart text.row-label { fill: var(--ink-2); font-size: 12px; }
+  .chart .gridline { stroke: var(--rule); stroke-width: 1; }
+  .chart .link { stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; }
+  .chart .dot-prev { fill: var(--cat-2); stroke: var(--paper); stroke-width: 2; }
+  .chart .dot-model { fill: var(--cat-1); stroke: var(--paper); stroke-width: 2; }
+  .chart .hit { fill: transparent; }
+  .chart g.row:hover .link, .chart g.row:focus .link { stroke: var(--ink); }
+  .chart g.row:hover .row-label, .chart g.row:focus .row-label { fill: var(--ink); font-weight: 600; }
+  .chart g.row:focus { outline: none; }
+
+  .tooltip {
+    position: fixed; z-index: 10; pointer-events: none; display: none;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--rule-strong);
+    border-radius: 4px; padding: 8px 10px; font-size: 0.8rem; line-height: 1.5; min-width: 150px;
+  }
+  .tooltip .tt-title { font-size: 0.74rem; color: var(--ink-3); margin-bottom: 2px; }
+  .tooltip .tt-row { display: flex; align-items: center; gap: 8px; }
+  .tooltip .tt-row b { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .tooltip .tt-row span { color: var(--ink-2); }
+  .tooltip .tt-key { width: 12px; height: 2px; display: inline-block; }
+
+  /* ── 모델 비교 막대 ────────────────────────────────────── */
+  .cmp { border-top: 2px solid var(--rule-strong); }
+  .cmp-row {
+    display: grid; grid-template-columns: minmax(9rem, 15rem) 1fr 3.6rem;
+    align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule);
+  }
+  .cmp-row .nm { font-size: 0.86rem; color: var(--ink-2); }
+  .cmp-row.chosen .nm { color: var(--ink); font-weight: 700; }
+  .cmp-row.ref .nm { font-style: normal; color: var(--ink-3); }
+  .cmp-row .meter { height: 10px; position: relative; }
+  .cmp-row .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: var(--ink-3); }
+  .cmp-row.chosen .fill { background: var(--cat-1); }
+  .cmp-row.ref .fill { background: var(--dim); }
+  .cmp-row .val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .data-table { margin-top: 16px; }
+  .data-table th:first-child, .data-table td:first-child { text-align: left; }
+  .data-table tr.chosen td { font-weight: 700; }
+  .data-table tr.ref td { color: var(--ink-3); }
+
+  .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 22px 34px; }
+  .two-col h3 { font-size: 0.95rem; margin: 0 0 6px; }
+  .two-col p { margin: 8px 0 0; font-size: 0.84rem; color: var(--ink-2); }
+
+  .finding {
+    margin: 16px 0 0; padding: 12px 14px; border-left: 3px solid var(--accent);
+    background: var(--accent-soft); font-size: 0.88rem; color: var(--ink); max-width: 76ch;
+  }
+  .finding .tf { margin-right: 6px; }
+
+  details.notes { margin-top: 30px; border-top: 1px solid var(--rule); }
+  details.notes > summary {
+    font-size: 0.86rem; font-weight: 600; color: var(--ink-2);
+    cursor: pointer; padding: 10px 0; list-style: none;
+  }
+  details.notes > summary::-webkit-details-marker { display: none; }
+  details.notes > summary::before { content: "👉 "; font-family: Tossface; }
+  details.notes[open] > summary::before { content: "👇 "; }
+  details.notes > summary:hover { color: var(--accent); }
+  .caveat { margin: 0; font-size: 0.85rem; color: var(--ink-2); line-height: 1.8; max-width: 76ch; }
+  .caveat strong { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 520px) {
+    .confs { grid-template-columns: 1fr; }
+    .st-head, .st-row { grid-template-columns: 1.4rem 6rem 1fr 2.6rem; gap: 6px; }
+    .cmp-row { grid-template-columns: 8rem 1fr 3rem; }
+  }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <header class="page-head">
+      <div class="eyebrow">예측 모델 · <span id="season-from">—</span> 기록 기준</div>
+      <h1><span id="season-to">—</span> 팀 순위 예측</h1>
+      <p>선수 한 명 한 명의 다음 시즌 NDL Score 예측을 로스터 단위로 모아, 팀의 공격·수비 레이팅과
+         승수를 예측합니다. 같은 방식을 지난 11개 시즌에 그대로 돌려 얼마나 맞았는지도 함께 공개합니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="__HOME_URL__"><span class="tf">🏠</span> 홈</a>
+        <a class="nav-link" href="__STATS_URL__">시즌 스탯</a>
+        <a class="nav-link" href="__NDL_URL__">NDL Score</a>
+        <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
+        <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
+        <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
+        <a class="nav-link" href="__PROJ_URL__">다음 시즌 예측</a>
+        <a class="nav-link" href="__MODEL_URL__" aria-current="page">예측 모델</a>
+      </div>
+    </header>
+
+    <div class="scores" id="scores"></div>
+
+    <!-- 1. 순위 예측 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🏆</span> 2026–27 정규시즌</div>
+      <h2>컨퍼런스별 예상 승수</h2>
+      <p class="lede">막대가 예상 승수, 가는 선이 지난 11개 시즌의 평균 오차(<b id="mae-w">—</b>) 범위입니다.
+         범위가 겹치는 팀끼리는 순위가 얼마든지 뒤집힐 수 있으니, 순위 하나하나보다 상위·중위·하위권으로
+         읽는 편이 맞습니다. 팀을 누르면 어느 선수가 얼마나 기여했는지 펼쳐집니다.</p>
+      <div class="confs" id="confs"></div>
+      <div class="legend-line">
+        <span class="key"><span class="key-bar"></span>예상 승수</span>
+        <span class="key"><span class="key-range"></span>± 평균 오차</span>
+        <span class="key"><span class="key-ref"></span>41승(5할)</span>
+      </div>
+    </section>
+
+    <!-- 2. 백테스트 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">📊</span> 백테스트</div>
+      <h2>지난 11개 시즌, 얼마나 맞았나</h2>
+      <p class="lede">각 시즌을 그 직전 시즌까지의 기록만으로 예측하고, 실제 순레이팅(공격 − 수비, 리그 평균 대비)과의
+         평균 오차를 쟀습니다. 비교 대상은 "작년 팀 성적이 그대로 간다"는 가장 단순한 예측입니다.
+         <b id="beat-count">—</b></p>
+      <svg class="chart" id="dumbbell" role="img" aria-labelledby="dumbbell-title"><title id="dumbbell-title">시즌별 순레이팅 평균 오차: 작년 그대로 대 로스터 예측</title></svg>
+      <div class="legend-line">
+        <span class="key"><span class="key-dot" style="background:var(--cat-1)"></span>로스터 NDL 예측 (이 모델)</span>
+        <span class="key"><span class="key-dot" style="background:var(--cat-2)"></span>작년 팀 성적 그대로</span>
+      </div>
+    </section>
+
+    <!-- 3. 무엇이 오차를 만드나 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🔍</span> 오차는 어디서 오나</div>
+      <h2>남은 오차는 선수 예측에서 나온다</h2>
+      <p class="lede">무엇을 미리 알았다면 얼마나 나아졌을지 거꾸로 재봤습니다. 실제 출전시간을 알아도 오차는 조금밖에
+         줄지 않지만, <b>그 시즌 선수 성적까지 알면</b> 절반 아래로 떨어집니다. 팀 집계 방식보다
+         선수 개개인의 다음 시즌 변화를 맞히는 쪽이 개선 여지가 큽니다.</p>
+      <div class="cmp" id="cmp"></div>
+      <div class="table-scroll data-table">
+        <table id="cmp-table"></table>
+      </div>
+    </section>
+
+    <!-- 4. 공격과 수비 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🧮</span> 공격과 수비</div>
+      <h2>공격은 맞고, 수비는 다음 시즌으로 이어지지 않는다</h2>
+      <div class="two-col">
+        <div>
+          <div class="table-scroll data-table" style="margin-top:0"><table id="od-table"></table></div>
+        </div>
+        <div>
+          <p style="margin-top:0">선수 기록으로 공격은 잘 맞히지만, 수비는 <b>작년 팀 성적을 그대로 쓰느니만 못했습니다.</b>
+             그래서 작년 팀 레이팅을 피처로 함께 넣은 모델을 씁니다.</p>
+          <p>그렇다고 선수 기록이 팀 수비를 못 담는 것은 아닙니다. 그 시즌 실제 선수 기록을 넣으면 수비 상관이
+             <b id="true-d">—</b>까지 오릅니다. 팀 성적이 섞일 수 있는 승리기여 축을 빼도 거의 같았습니다.
+             문제는 수비 쪽 기록이 <b>다음 시즌까지 이어지지 않는다</b>는 데 있습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 넣어보고 뺀 것 -->
+    <section class="block">
+      <div class="eyebrow"><span class="tf">🧪</span> 넣어보고 뺀 것</div>
+      <h2>신인을 드래프트 순번으로 나눠도 달라지지 않았다</h2>
+      <p class="lede">기록이 없는 신인은 학습 구간에서 같은 처지였던 선수들의 평균(<b id="unknown-avg">—</b>)을 받습니다.
+         상위 지명 신인이 있는 팀이 낮게 잡힐 거라 보고 지명 순번별로 나눠봤지만, 1~3순위만 평균보다 높았습니다.</p>
+      <div class="two-col">
+        <div>
+          <h3>신인 첫 시즌 성적 (학습 구간 1979~2015)</h3>
+          <div class="table-scroll data-table" style="margin-top:0"><table id="pick-table"></table></div>
+        </div>
+        <div>
+          <h3>하나씩 켜고 잰 홀드아웃 결과</h3>
+          <div class="table-scroll data-table" style="margin-top:0"><table id="var-table"></table></div>
+          <p>세 가지 모두 오차가 0.01 안팎으로 움직여 넣지 않았습니다. 샬럿 2025-26은 4순위 신인 크니펠이
+             NDL 65.0을 내 크게 틀렸는데, 같은 4~10순위 평균은 50.2였습니다. 지명 순번으로는 알 수 없는 이상치였습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <details class="notes">
+      <summary>어떻게 만들었고, 무엇을 조심했는지</summary>
+      <p class="caveat">
+        <strong>미래 정보를 쓰지 않았습니다.</strong> 예를 들어 2017-18 클리블랜드라면, 그 시즌 로스터 선수 전원의
+        NDL을 2016-17까지의 기록만으로 예측합니다. 로스터는 그 시즌에 처음 뛴 팀(개막 로스터에 해당)으로,
+        출전 비중은 직전 시즌 경기당 출전시간으로 잡았습니다. 실제 출전시간을 쓰면 부상·트레이드를 미리 아는 셈이 됩니다.<br/>
+        <strong>목표값은 리그 평균 대비 레이팅입니다.</strong> 리그 전체 득점 수준은 시대마다 10점 넘게 움직여,
+        빼지 않으면 시대를 맞히는 문제가 됩니다. 승수는 순레이팅에 학습 구간에서 구한 계수(1점당 승률
+        <span id="win-coef">—</span>)를 곱해 환산했습니다.<br/>
+        <strong>학습과 시험을 나눴습니다.</strong> 학습은 <span id="train-span">—</span> 시즌, 시험은
+        <span id="test-span">—</span> 시즌입니다. 피처 조합은 학습 구간 안에서 시즌을 하나씩 빼 맞혀보는
+        교차검증으로만 골랐습니다.<br/>
+        <strong>2026-27 로스터</strong>는 2026년 10월 25일 기준이고, 시즌아웃이 확정된 선수는 뺐습니다. 과거 로스터는
+        "그 시즌에 실제로 뛴 선수"라 시즌을 통째로 쉰 선수가 없으니 조건을 맞추기 위해서입니다.<br/>
+        <strong>한계</strong>: 부상, 탱킹, 신인·유망주의 급성장은 직전 시즌 기록에 없는 정보라 반영하지 못합니다.
+        크게 틀린 팀은 대부분 이 세 경우였습니다.
+      </p>
+    </details>
+
+    <footer class="page-foot">
+      데이터 출처: basketball-reference.com · 팀 레이팅은 일정 보정값(ORtg/A, DRtg/A) ·
+      NDL Score와 이 예측 모두 직접 설계한 실험적 지표입니다 · 개인 프로젝트
+    </footer>
+  </div>
+  <div class="tooltip" id="tooltip" role="status"></div>
+</div>
+
+<script type="application/json" id="team-data">__TEAM_DATA__</script>
+<script type="application/json" id="exp-data">__EXP_DATA__</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('team-data').textContent);
+  const X = JSON.parse(document.getElementById('exp-data').textContent);
+  const M = D.model, H = M.holdout;
+  const CHOSEN = H['real_' + M.chosen];
+  const PREV = H.prev;
+
+  const TEAM_KO = {
+    ATL: '애틀랜타', BOS: '보스턴', BRK: '브루클린', CHO: '샬럿', CHI: '시카고', CLE: '클리블랜드',
+    DAL: '댈러스', DEN: '덴버', DET: '디트로이트', GSW: '골든스테이트', HOU: '휴스턴', IND: '인디애나',
+    LAC: 'LA 클리퍼스', LAL: 'LA 레이커스', MEM: '멤피스', MIA: '마이애미', MIL: '밀워키', MIN: '미네소타',
+    NOP: '뉴올리언스', NYK: '뉴욕', OKC: '오클라호마시티', ORL: '올랜도', PHI: '필라델피아', PHO: '피닉스',
+    POR: '포틀랜드', SAC: '새크라멘토', SAS: '샌안토니오', TOR: '토론토', UTA: '유타', WAS: '워싱턴',
+  };
+  const sgn = (v, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+
+  // ── 머리말·각주 ─────────────────────────────────────────
+  const [y0, y1] = D.season.split('-');
+  document.getElementById('season-to').textContent = `${y0}–${y1}`;
+  document.getElementById('season-from').textContent = `${+y0 - 1}–${y0.slice(2)}`;
+  document.getElementById('mae-w').textContent = `±${CHOSEN.maeW.toFixed(1)}승`;
+  document.getElementById('win-coef').textContent = M.winCoef.toFixed(4);
+  const span = ([a, b]) => `${a - 1}-${String(a).slice(2)} ~ ${b - 1}-${String(b).slice(2)}`;
+  document.getElementById('train-span').textContent = span(M.trainSeasons);
+  document.getElementById('test-span').textContent = span(M.holdoutSeasons);
+  document.getElementById('true-d').textContent = H['true_comp'].corrD.toFixed(2);
+  document.getElementById('unknown-avg').textContent =
+    `NDL ${X.unknownAvg.ndl}, 경기당 ${X.unknownAvg.mpg}분`;
+
+  const beat = M.bySeason.filter(s => s.model < s.prev).length;
+  document.getElementById('beat-count').textContent =
+    `${M.bySeason.length}개 시즌 중 ${beat}개 시즌에서 이 모델이 더 정확했습니다.`;
+
+  // ── 핵심 수치 ───────────────────────────────────────────
+  const cells = [
+    ['예상 승수 평균 오차', `<span class="was">${PREV.maeW.toFixed(1)}</span><span class="to">→</span>${CHOSEN.maeW.toFixed(1)}<small>승</small>`, '작년 팀 성적 그대로 → 이 모델'],
+    ['기준선을 이긴 시즌', `${beat}<small> / ${M.bySeason.length}</small>`, `시험 구간 ${span(M.holdoutSeasons)}`],
+    ['순레이팅 상관', `<span class="was">${PREV.corrN.toFixed(2)}</span><span class="to">→</span>${CHOSEN.corrN.toFixed(2)}`, '실제 팀 순레이팅과의 상관'],
+    ['컨퍼런스 상위 6팀 적중', `${CHOSEN.playoff.toFixed(1)}<small> / 12</small>`, `작년 그대로는 ${PREV.playoff.toFixed(1)}`],
+  ];
+  const scores = document.getElementById('scores');
+  cells.forEach(([k, v, sub]) => {
+    const c = el('div', 'score-cell');
+    c.append(el('div', 'k', k));
+    const ve = el('div', 'v'); ve.innerHTML = v; c.append(ve);
+    c.append(el('div', 'sub', sub));
+    scores.append(c);
+  });
+
+  // ── 툴팁 ────────────────────────────────────────────────
+  const tip = document.getElementById('tooltip');
+  function showTip(evt, title, rows) {
+    tip.replaceChildren(el('div', 'tt-title', title));
+    rows.forEach(([key, value, label]) => {
+      const r = el('div', 'tt-row');
+      if (key) { const k = el('span', 'tt-key'); k.style.background = key; r.append(k); }
+      r.append(el('b', null, value), el('span', null, label));
+      tip.append(r);
+    });
+    tip.style.display = 'block';
+    let x, y;
+    if (evt.clientX != null && evt.type !== 'focus') { x = evt.clientX + 14; y = evt.clientY + 14; }
+    else { const b = evt.currentTarget.getBoundingClientRect(); x = b.left + 40; y = b.bottom + 4; }
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(x, innerWidth - w - 8) + 'px';
+    tip.style.top = (y + h > innerHeight - 8 ? y - h - 24 : y) + 'px';
+  }
+  const hideTip = () => { tip.style.display = 'none'; };
+
+  // ── 순위 예측 ───────────────────────────────────────────
+  const MAXW = 75, err = CHOSEN.maeW;
+  const pct = w => Math.max(0, Math.min(100, w / MAXW * 100));
+  const rosterOf = {};
+  D.players.forEach(p => (rosterOf[p.team] = rosterOf[p.team] || []).push(p));
+
+  function rosterPanel(team) {
+    const box = el('div', 'roster');
+    const ps = rosterOf[team].slice().sort((a, b) => b.share - a.share).slice(0, 10);
+    box.append(el('p', null, '출전 비중이 큰 10명. 팀 예측은 이 비중으로 선수 예측을 가중평균한 값에서 출발합니다.'));
+    const t = el('table');
+    const hr = el('tr');
+    ['선수', '예상 NDL', '출전 비중'].forEach(h => hr.append(el('th', null, h)));
+    const th = el('thead'); th.append(hr);
+    const tb = el('tbody');
+    ps.forEach(p => {
+      const tr = el('tr');
+      const name = el('td', null, p.player);
+      if (!p.known) name.append(el('span', 'tag', '기록 없음'));
+      if (p.injury) { const tg = el('span', 'tag', '부상'); tg.title = p.injury; name.append(tg); }
+      tr.append(name, el('td', null, p.projected.toFixed(1)), el('td', null, (p.share * 100).toFixed(1) + '%'));
+      tb.append(tr);
+    });
+    t.append(th, tb);
+    box.append(t);
+    return box;
+  }
+
+  const confs = document.getElementById('confs');
+  [['E', '동부'], ['W', '서부']].forEach(([code, label]) => {
+    const wrap = el('div', 'conf');
+    wrap.append(el('h3', null, `${label} 컨퍼런스`));
+    const list = el('div', 'standings');
+    const head = el('div', 'st-head');
+    head.append(el('span', null, ''), el('span', null, '팀'));
+    const axis = el('span', 'axis');
+    [0, 20, 41, 60].forEach(v => { const i = el('i', null, v); i.style.left = pct(v) + '%'; axis.append(i); });
+    head.append(axis, el('span', 'num', '예상 승'));
+    list.append(head);
+
+    D.teams.filter(t => t.conf === code).sort((a, b) => b.nrtg - a.nrtg).forEach((t, i) => {
+      if (i === 6) list.append(el('div', 'cutline', '플레이오프 직행 · 플레이인'));
+      if (i === 10) list.append(el('div', 'cutline', '플레이인 · 탈락'));
+      const row = el('button', 'st-row');
+      row.type = 'button';
+      row.setAttribute('aria-expanded', 'false');
+      const tm = el('span', 'tm', TEAM_KO[t.team] || t.team);
+      tm.append(el('small', null, t.team));
+      const track = el('span', 'track');
+      const ref = el('span', 'ref'); ref.style.left = pct(41) + '%';
+      const bar = el('span', 'bar'); bar.style.width = pct(t.wins) + '%';
+      const rng = el('span', 'range');
+      rng.style.left = pct(t.wins - err) + '%';
+      rng.style.width = (pct(t.wins + err) - pct(t.wins - err)) + '%';
+      track.append(ref, bar, rng);
+      row.append(el('span', 'rk', i + 1), tm, track, el('span', 'wins', t.wins.toFixed(1)));
+      row.setAttribute('aria-label',
+        `${label} ${i + 1}위 ${TEAM_KO[t.team]}, 예상 ${t.wins.toFixed(1)}승, 순레이팅 ${sgn(t.nrtg)}`);
+      const rows = () => [
+        [null, `${t.wins.toFixed(1)}승`, `범위 ${(t.wins - err).toFixed(0)}~${(t.wins + err).toFixed(0)}승`],
+        [null, sgn(t.ortg), '공격 레이팅 (리그 평균 대비)'],
+        [null, sgn(t.drtg), '수비 레이팅 (낮을수록 좋음)'],
+        [null, sgn(t.nrtg), '순레이팅'],
+      ];
+      const title = `${TEAM_KO[t.team]} · ${label} ${i + 1}위`;
+      row.addEventListener('pointermove', e => showTip(e, title, rows()));
+      row.addEventListener('pointerleave', hideTip);
+      row.addEventListener('focus', e => showTip(e, title, rows()));
+      row.addEventListener('blur', hideTip);
+      let panel = null;
+      row.addEventListener('click', () => {
+        const open = row.getAttribute('aria-expanded') === 'true';
+        row.setAttribute('aria-expanded', String(!open));
+        if (open) { panel.remove(); panel = null; }
+        else { panel = rosterPanel(t.team); row.after(panel); }
+      });
+      list.append(row);
+    });
+    wrap.append(list);
+    confs.append(wrap);
+  });
+
+  // ── 백테스트 덤벨 ───────────────────────────────────────
+  (function dumbbell() {
+    const svg = document.getElementById('dumbbell');
+    const NS = 'http://www.w3.org/2000/svg';
+    const W = 760, L = 70, R = 24, T = 22, ROW = 26;
+    const S = M.bySeason, Hh = T + S.length * ROW + 6;
+    svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+    const xmax = Math.ceil(Math.max(...S.map(s => Math.max(s.prev, s.model))));
+    const x = v => L + (W - L - R) * v / xmax;
+    const mk = (tag, attrs, parent) => {
+      const n = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v));
+      (parent || svg).appendChild(n);
+      return n;
+    };
+    for (let v = 0; v <= xmax; v++) {
+      mk('line', { class: 'gridline', x1: x(v), x2: x(v), y1: T - 6, y2: Hh - 4 });
+      const tx = mk('text', { x: x(v), y: T - 10, 'text-anchor': 'middle' });
+      tx.textContent = v === xmax ? `${v}점 (순레이팅 평균 오차)` : v;
+      if (v === xmax) tx.setAttribute('text-anchor', 'end'), tx.setAttribute('x', x(v));
+    }
+    S.forEach((s, i) => {
+      const cy = T + i * ROW + ROW / 2;
+      const g = mk('g', { class: 'row', tabindex: 0 });
+      g.setAttribute('aria-label', `${s.season}: 이 모델 ${s.model}, 작년 그대로 ${s.prev}`);
+      mk('rect', { class: 'hit', x: 0, y: cy - ROW / 2, width: W, height: ROW }, g);
+      const lab = mk('text', { class: 'row-label', x: L - 12, y: cy + 4, 'text-anchor': 'end' }, g);
+      lab.textContent = s.season;
+      mk('line', { class: 'link', x1: x(s.model), x2: x(s.prev), y1: cy, y2: cy }, g);
+      mk('circle', { class: 'dot-prev', cx: x(s.prev), cy, r: 5.5 }, g);
+      mk('circle', { class: 'dot-model', cx: x(s.model), cy, r: 5.5 }, g);
+      if (i === 0) {   // 첫 줄만 직접 라벨
+        const a = mk('text', { x: x(s.model) - 10, y: cy + 4, 'text-anchor': 'end' }, g);
+        a.textContent = '이 모델';
+        const b = mk('text', { x: x(s.prev) + 10, y: cy + 4 }, g);
+        b.textContent = '작년 그대로';
+      }
+      const rows = () => [
+        ['var(--cat-1)', s.model.toFixed(2), '이 모델'],
+        ['var(--cat-2)', s.prev.toFixed(2), '작년 팀 성적 그대로'],
+        [null, sgn(s.model - s.prev, 2), '차이'],
+      ];
+      g.addEventListener('pointermove', e => showTip(e, `${s.season} 시즌 · 순레이팅 평균 오차`, rows()));
+      g.addEventListener('pointerleave', hideTip);
+      g.addEventListener('focus', e => showTip(e, `${s.season} 시즌 · 순레이팅 평균 오차`, rows()));
+      g.addEventListener('blur', hideTip);
+    });
+  })();
+
+  // ── 모델 비교 ───────────────────────────────────────────
+  const MODELS = [
+    ['zero', '모두 리그 평균', ''],
+    ['prev', '작년 팀 성적 그대로', ''],
+    ['real_' + M.chosen, '로스터 NDL 예측 (이 모델)', 'chosen'],
+    ['orac_' + M.chosen, '(참고) 실제 출전시간을 안다면', 'ref'],
+    ['true_' + M.chosen, '(참고) 선수 성적까지 안다면', 'ref'],
+  ];
+  const cmp = document.getElementById('cmp');
+  const maxW = Math.max(...MODELS.map(([k]) => H[k].maeW));
+  MODELS.forEach(([k, label, cls]) => {
+    const r = el('div', 'cmp-row' + (cls ? ' ' + cls : ''));
+    const meter = el('div', 'meter');
+    const f = el('span', 'fill'); f.style.width = (H[k].maeW / maxW * 100) + '%';
+    meter.append(f);
+    r.append(el('span', 'nm', label), meter, el('span', 'val', H[k].maeW.toFixed(1) + '승'));
+    cmp.append(r);
+  });
+
+  function table(id, head, body, rowCls) {
+    const t = document.getElementById(id);
+    const hr = el('tr'); head.forEach(h => hr.append(el('th', null, h)));
+    const th = el('thead'); th.append(hr);
+    const tb = el('tbody');
+    body.forEach((cells, i) => {
+      const tr = el('tr', rowCls ? rowCls[i] : null);
+      cells.forEach(c => tr.append(el('td', null, c)));
+      tb.append(tr);
+    });
+    t.replaceChildren(th, tb);
+  }
+  const f2 = v => v == null ? '—' : v.toFixed(2), f3 = v => v ? v.toFixed(3) : '—';
+  table('cmp-table',
+    ['모델', '승수 오차', '순레이팅 오차', '순레이팅 상관', '상위 6팀 적중'],
+    MODELS.map(([k, label]) => [label, H[k].maeW.toFixed(1) + '승', f2(H[k].maeN), f3(H[k].corrN),
+                                k === 'zero' || k.startsWith('true') ? '—' : H[k].playoff.toFixed(1) + ' / 12']),
+    MODELS.map(([, , c]) => c));
+
+  table('od-table',
+    ['', '공격 상관', '수비 상관'],
+    [['작년 팀 성적 그대로', f3(PREV.corrO), f3(PREV.corrD)],
+     ['선수 예측만', f3(H.real_comp.corrO), f3(H.real_comp.corrD)],
+     ['+ 작년 팀 레이팅 (이 모델)', f3(CHOSEN.corrO), f3(CHOSEN.corrD)],
+     ['(참고) 그 시즌 실제 선수 기록', f3(H.true_comp.corrO), f3(H.true_comp.corrD)]],
+    ['', '', 'chosen', 'ref']);
+
+  table('pick-table',
+    ['지명', '표본', '신인 시즌 NDL', '경기당 출전'],
+    X.pickBins.map(b => [b.label, b.n.toLocaleString('en-US'), b.ndl.toFixed(1), b.mpg.toFixed(1) + '분']));
+
+  table('var-table',
+    ['', '순레이팅 오차', '승수 오차', '샬럿 25-26'],
+    X.variants.map(v => [v.label, v.maeN.toFixed(2), v.maeW.toFixed(2) + '승', sgn(v.charlotte2026)]));
+})();
+</script>

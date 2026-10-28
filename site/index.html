@@ -1,11 +1,25 @@
-﻿<title>NBA DATA LAB</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+﻿<meta charset="utf-8">
+<title>NBA DATA LAB</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 /* NBA DATA LAB 공통 스타일
  *
  * 컨셉: 기록집(record book). 농구의 고유 문서 형식은 박스스코어이므로 카드와 그림자 대신
- * 괘선과 표를 기본 구조로 쓴다. 액센트는 농구공 가죽색 하나만 두고, 숫자가 중요한 화면이라
- * 응축형 서체(Oswald)로 수치를 세운다. 한글 본문은 IBM Plex Sans KR이 담당한다.
+ * 괘선과 표를 기본 구조로 쓴다. 액센트는 농구공 가죽색(open-color orange) 하나만 둔다.
+ *
+ * 세 가지 규칙
+ *   글자  Pretendard 한 가지. 한국어판 서브셋에 없는 라틴 확장 문자(Jokić의 ć 등)는
+ *         같은 계열의 Pretendard Std가, 이모지 자리는 Tossface가 받는다(아래 --font).
+ *   아이콘 Tossface 이모지만. 아이콘 글리프는 .tf로 감싸 Tossface를 강제한다.
+ *   색    open-color(https://yeun.github.io/open-color/) 색표의 값만. 투명도로 섞은
+ *         색도 색표 밖의 색이 되므로, 옅은 색이 필요하면 같은 계열의 밝은 단계를 쓴다.
+ *         주석의 'orange 9' 같은 이름이 색표의 계열·단계다.
+ *
+ * 차트 계열색 4개는 dataviz 검증기(OKLab ΔE, 색각이상 시뮬레이션)를 라이트·다크 각각
+ * 통과한 조합이다. 산점도처럼 아무 두 점이 붙을 수 있는 차트는 앞 3개만 쓴다.
  *
  * 빌드 시점에 site_config.apply_base_css()가 각 템플릿의 자리표시자에 이 파일을 통째로
  * 끼워 넣는다. 페이지 고유 레이아웃은 각 템플릿이 이 뒤에 이어서 정의한다.
@@ -13,70 +27,85 @@
 
 .viz-root {
   color-scheme: light;
-  --paper:        #f4f3f0;
-  --surface:      #ffffff;
-  --surface-sunk: #edece8;
-  --ink:          #16181d;
-  --ink-2:        #4a4e57;
-  --ink-3:        #878b93;
-  --rule:         #dedcd6;
-  --rule-strong:  #16181d;
-  --accent:       #cf4a20;
-  --accent-soft:  #fbeee9;
-  --pos:          #1c7f5a;
-  --neg:          #b03a2e;
+  --font: "Pretendard Variable", "Pretendard Std Variable", Tossface;
 
-  /* 차트용 계열색. 액센트와 충돌하지 않는 범위에서 4개만 둔다. */
-  --cat-1: #cf4a20;  /* 액센트(가죽) */
-  --cat-2: #2a6f7a;  /* 딥 틸 */
-  --cat-3: #7b6193;  /* 슬레이트 바이올렛 */
-  --cat-4: #b08420;  /* 오커 */
-  --seq-lo: #f6ddd2;
-  --seq-hi: #cf4a20;
+  --paper:        #f8f9fa;  /* gray 0 */
+  --surface:      #ffffff;  /* white */
+  --surface-sunk: #f1f3f5;  /* gray 1 */
+  --ink:          #212529;  /* gray 9 */
+  --ink-2:        #495057;  /* gray 7 */
+  --ink-3:        #868e96;  /* gray 6 */
+  --rule:         #dee2e6;  /* gray 3 */
+  --rule-strong:  #212529;  /* gray 9 */
+  --accent:       #d9480f;  /* orange 9 — 글자로도 쓰여 4:1 이상이 되는 단계 */
+  --accent-soft:  #fff4e6;  /* orange 0 */
+  --on-accent:    #ffffff;  /* 액센트 바탕 위 글자 */
+  --pos:          #2b8a3e;  /* green 9 */
+  --neg:          #c92a2a;  /* red 9 */
+  --pos-wash:     #d3f9d8;  /* green 1 — 면적 채움 */
+  --neg-wash:     #ffe8cc;  /* orange 1 */
+  --dim:          #dee2e6;  /* gray 3 — 흐리게 처리한 마크 */
+
+  /* 차트용 계열색 */
+  --cat-1: #e8590c;  /* orange 8 */
+  --cat-2: #1098ad;  /* cyan 7 */
+  --cat-3: #5f3dc4;  /* violet 9 */
+  --cat-4: #5c940d;  /* lime 9 */
+  --seq-lo: #ffe8cc; /* orange 1 */
+  --seq-hi: #e8590c; /* orange 8 */
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .viz-root {
     color-scheme: dark;
-    --paper:        #101216;
-    --surface:      #171a1f;
-    --surface-sunk: #1d2127;
-    --ink:          #f2f3f5;
-    --ink-2:        #a8adb6;
-    --ink-3:        #6f747d;
-    --rule:         #2a2e35;
-    --rule-strong:  #6f747d;
-    --accent:       #f2683b;
-    --accent-soft:  #2b1710;
-    --pos:          #3fbc8b;
-    --neg:          #e2705f;
-    --cat-1: #f2683b;
-    --cat-2: #4fa8b5;
-    --cat-3: #a68cc0;
-    --cat-4: #d9ab45;
-    --seq-lo: #3a2018;
-    --seq-hi: #f2683b;
+    --paper:        #212529;  /* gray 9 */
+    --surface:      #343a40;  /* gray 8 */
+    --surface-sunk: #343a40;  /* gray 8 */
+    --ink:          #f8f9fa;  /* gray 0 */
+    --ink-2:        #ced4da;  /* gray 4 */
+    --ink-3:        #868e96;  /* gray 6 */
+    --rule:         #495057;  /* gray 7 */
+    --rule-strong:  #adb5bd;  /* gray 5 */
+    --accent:       #ff922b;  /* orange 5 */
+    --accent-soft:  #343a40;  /* gray 8 */
+    --on-accent:    #212529;  /* gray 9 */
+    --pos:          #51cf66;  /* green 5 */
+    --neg:          #ff6b6b;  /* red 5 */
+    --pos-wash:     #343a40;  /* gray 8 — 색표에 어두운 바탕용 옅은 녹색·주황이 없어 회색으로.
+                                 위아래 구분은 0선 기준 위치가 담당한다. */
+    --neg-wash:     #343a40;  /* gray 8 */
+    --dim:          #495057;  /* gray 7 */
+    --cat-1: #e8590c;  /* orange 8 */
+    --cat-2: #1098ad;  /* cyan 7 */
+    --cat-3: #7950f2;  /* violet 6 */
+    --cat-4: #66a80f;  /* lime 8 */
+    --seq-lo: #d9480f; /* orange 9 */
+    --seq-hi: #ffa94d; /* orange 4 */
   }
 }
 :root[data-theme="dark"] .viz-root {
   color-scheme: dark;
-  --paper:        #101216;
-  --surface:      #171a1f;
-  --surface-sunk: #1d2127;
-  --ink:          #f2f3f5;
-  --ink-2:        #a8adb6;
-  --ink-3:        #6f747d;
-  --rule:         #2a2e35;
-  --rule-strong:  #6f747d;
-  --accent:       #f2683b;
-  --accent-soft:  #2b1710;
-  --pos:          #3fbc8b;
-  --neg:          #e2705f;
-  --cat-1: #f2683b;
-  --cat-2: #4fa8b5;
-  --cat-3: #a68cc0;
-  --cat-4: #d9ab45;
-  --seq-lo: #3a2018;
-  --seq-hi: #f2683b;
+  --paper:        #212529;
+  --surface:      #343a40;
+  --surface-sunk: #343a40;
+  --ink:          #f8f9fa;
+  --ink-2:        #ced4da;
+  --ink-3:        #868e96;
+  --rule:         #495057;
+  --rule-strong:  #adb5bd;
+  --accent:       #ff922b;
+  --accent-soft:  #343a40;
+  --on-accent:    #212529;
+  --pos:          #51cf66;
+  --neg:          #ff6b6b;
+  --pos-wash:     #343a40;
+  --neg-wash:     #343a40;
+  --dim:          #495057;
+  --cat-1: #e8590c;
+  --cat-2: #1098ad;
+  --cat-3: #7950f2;
+  --cat-4: #66a80f;
+  --seq-lo: #d9480f;
+  --seq-hi: #ffa94d;
 }
 
 /* ── 구 토큰 이름 별칭 ──────────────────────────────────────
@@ -114,42 +143,45 @@ body { margin: 0; }
 .viz-root {
   background: var(--paper);
   color: var(--ink);
-  font-family: "IBM Plex Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font);
   font-size: 15px;
   line-height: 1.6;
   min-height: 100vh;
   padding-block: 28px 72px;
   padding-inline: 16px;
   -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
 }
+.viz-root button, .viz-root input, .viz-root select, .viz-root textarea { font-family: inherit; }
 .wrap { max-width: 1120px; margin: 0 auto; }
 
-/* ── 응축형 서체: 제목·라벨·수치 ───────────────────────────── */
+/* 아이콘: Tossface 이모지. 숫자·#도 Tossface 범위에 있어서, 본문에서는 Pretendard가
+ * 먼저 받고 아이콘 자리에서만 Tossface를 강제한다. */
+.tf { font-family: Tossface; font-style: normal; font-weight: 400; line-height: 1; }
+
+/* ── 제목·라벨·수치 ───────────────────────────────────── */
 .display,
 .viz-root h1,
 .stat-figure,
 .rank-num {
-  font-family: Oswald, "IBM Plex Sans KR", system-ui, sans-serif;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 .viz-root h1 {
   font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
-  line-height: 1.15;
+  line-height: 1.2;
   margin: 0 0 6px;
-  text-transform: uppercase;
   text-wrap: balance;
 }
-.viz-root h2 { font-size: 1.05rem; margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
+.viz-root h2 { font-size: 1.05rem; margin: 0 0 8px; font-weight: 700; text-wrap: balance; }
 .viz-root h3 { font-size: 0.92rem; margin: 0 0 6px; font-weight: 600; }
 
 /* 섹션을 여는 작은 라벨. 카드 대신 이걸로 구역을 나눈다. */
 .eyebrow {
-  font-family: Oswald, system-ui, sans-serif;
   font-size: 0.72rem;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.04em;
   color: var(--ink-3);
 }
 
@@ -159,12 +191,12 @@ header.page-head p { margin: 0; color: var(--ink-2); font-size: 0.92rem; max-wid
 
 .nav-links { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 14px; }
 .nav-link {
-  font-family: Oswald, system-ui, sans-serif;
-  font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: 0.84rem; font-weight: 500;
   color: var(--ink-2); text-decoration: none;
-  padding: 5px 11px; border-radius: 3px;
+  padding: 5px 11px; border-radius: 4px;
 }
 .nav-link:hover { color: var(--accent); background: var(--accent-soft); }
+.nav-link[aria-current="page"] { color: var(--ink); font-weight: 700; }
 
 /* ── 조작부 ────────────────────────────────────────────── */
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
@@ -181,19 +213,19 @@ button:focus-visible, a:focus-visible {
 }
 .controls input { flex: 1 1 200px; min-width: 150px; }
 .controls select#season-select,
-#season-select {
-  font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.03em; font-weight: 500;
-}
+#season-select { font-weight: 600; font-variant-numeric: tabular-nums; }
 .controls .count, .count { margin-left: auto; font-size: 0.8rem; color: var(--ink-3); white-space: nowrap; }
 
 /* ── 표: 카드가 아니라 괘선으로 ─────────────────────────── */
 .table-scroll { overflow-x: auto; border-top: 2px solid var(--rule-strong); }
-table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+/* 템플릿에 doctype이 없어 브라우저가 호환(quirks) 모드로 그린다. 이 모드에서 표는 글자색·굵기를
+ * 상속하지 않아 다크 모드에서 검은 글자로 남는다. 명시적으로 상속시킨다. */
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem;
+        color: inherit; font-weight: inherit; line-height: inherit; }
 thead th {
   position: sticky; top: 0; z-index: 1;
   background: var(--paper);
-  font-family: Oswald, system-ui, sans-serif;
-  font-weight: 500; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 600; font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--ink-3); text-align: right; white-space: nowrap;
   padding: 9px 12px; border-bottom: 1px solid var(--rule);
 }
@@ -203,7 +235,7 @@ tbody td {
   font-variant-numeric: tabular-nums;
 }
 tbody tr:hover td { background: var(--surface-sunk); }
-.rank-num { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.rank-num { color: var(--ink-3); font-variant-numeric: tabular-nums; font-weight: 500; }
 
 footer.page-foot {
   margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--rule);
@@ -223,8 +255,7 @@ footer.page-foot {
 /* ── 제호 ─────────────────────────────────────────────── */
 .masthead { border-bottom: 3px solid var(--rule-strong); padding-bottom: 16px; }
 .masthead .kicker {
-  font-family: Oswald, system-ui, sans-serif;
-  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+  font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--accent); margin-bottom: 8px;
 }
 .masthead h1 {
@@ -248,14 +279,13 @@ footer.page-foot {
   font-variant-numeric: tabular-nums; margin-bottom: 5px;
 }
 .scale-cell .stat-label {
-  font-family: Oswald, system-ui, sans-serif;
-  font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3);
 }
 
 /* ── 히어로: 척도 상한에 닿은 시즌 ────────────────────── */
 .ceiling { margin-top: 40px; }
 .ceiling-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.ceiling-head h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.35rem; font-weight: 600; margin: 0; }
+.ceiling-head h2 { font-size: 1.35rem; font-weight: 600; margin: 0; }
 .ceiling .note { margin: 0 0 16px; font-size: 0.88rem; color: var(--ink-2); max-width: 62ch; }
 .ceiling .note b { color: var(--accent); font-weight: 600; }
 
@@ -267,24 +297,24 @@ footer.page-foot {
   padding: 13px 2px; border-bottom: 1px solid var(--rule);
 }
 .ceiling-row .yr {
-  font-family: Oswald, system-ui, sans-serif; font-size: 0.86rem;
+  font-size: 0.86rem;
   color: var(--ink-3); font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
 }
 .ceiling-row .who { min-width: 0; }
 .ceiling-row .nm { font-weight: 600; font-size: 1rem; }
 .ceiling-row .tm {
-  font-family: Oswald, system-ui, sans-serif; font-size: 0.74rem;
-  letter-spacing: 0.08em; color: var(--ink-3); margin-left: 8px;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em; color: var(--ink-3); margin-left: 8px;
 }
 .ceiling-row .line { font-size: 0.82rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .ceiling-row .score {
-  font-family: Oswald, system-ui, sans-serif; font-size: 1.35rem; font-weight: 600;
+  font-size: 1.35rem; font-weight: 600;
   color: var(--accent); font-variant-numeric: tabular-nums;
 }
 
 /* ── 최신 시즌 상위권 ─────────────────────────────────── */
 .current { margin-top: 40px; }
-.current h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.1rem; margin: 0 0 12px; }
+.current h2 { font-size: 1.1rem; margin: 0 0 12px; }
 .bars { border-top: 2px solid var(--rule-strong); }
 .bar-row {
   display: grid; grid-template-columns: 1fr 3.2rem;
@@ -293,19 +323,19 @@ footer.page-foot {
 }
 .bar-row .label { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .bar-row .nm { font-weight: 500; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-row .tm { font-family: Oswald, system-ui, sans-serif; font-size: 0.7rem; letter-spacing: 0.08em; color: var(--ink-3); }
+.bar-row .tm { font-size: 0.7rem; letter-spacing: 0.04em; color: var(--ink-3); }
 .bar-row .track { position: relative; height: 100%; }
 .bar-row .meter { height: 7px; background: var(--surface-sunk); border-radius: 1px; margin-top: 5px; }
 .bar-row .fill { height: 100%; background: var(--accent); border-radius: 1px; }
 .bar-row .val {
-  font-family: Oswald, system-ui, sans-serif; font-size: 1rem; font-weight: 500;
+  font-size: 1rem; font-weight: 500;
   text-align: right; font-variant-numeric: tabular-nums;
 }
 .bar-grid { display: grid; grid-template-columns: minmax(0, 13rem) 1fr; gap: 12px; align-items: center; }
 
 /* ── 도구 목록 ────────────────────────────────────────── */
 .tools { margin-top: 44px; }
-.tools h2 { font-family: Oswald, system-ui, sans-serif; font-size: 1.1rem; margin: 0 0 12px; }
+.tools h2 { font-size: 1.1rem; margin: 0 0 12px; }
 .tool-list { border-top: 2px solid var(--rule-strong); }
 .tool {
   display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; align-items: baseline;
@@ -314,18 +344,19 @@ footer.page-foot {
 }
 .tool:hover { background: var(--accent-soft); }
 .tool:hover .tool-name { color: var(--accent); }
-.tool:hover .arrow { transform: translateX(3px); color: var(--accent); }
+.tool:hover .arrow { transform: translateX(3px); }
 .tool-name {
-  font-family: Oswald, system-ui, sans-serif; font-size: 1.12rem; font-weight: 500;
+  font-size: 1.12rem; font-weight: 500;
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
 }
 .tool-name .span {
-  font-size: 0.68rem; letter-spacing: 0.08em; color: var(--ink-3);
+  font-size: 0.68rem; letter-spacing: 0.04em; color: var(--ink-3);
   border: 1px solid var(--rule); border-radius: 2px; padding: 1px 6px;
   font-variant-numeric: tabular-nums;
 }
 .tool p { grid-column: 1 / -1; margin: 0; font-size: 0.87rem; color: var(--ink-2); max-width: 70ch; }
-.arrow { font-size: 1.1rem; color: var(--ink-3); transition: transform 0.15s ease, color 0.15s ease; }
+.arrow { font-size: 1rem; transition: transform 0.15s ease; }
+.tool-icon { font-size: 1.05em; margin-right: 2px; }
 
 @media (max-width: 560px) {
   .ceiling-row { grid-template-columns: 3.6rem 1fr; row-gap: 4px; }
@@ -369,34 +400,39 @@ footer.page-foot {
       <h2>둘러보기</h2>
       <div class="tool-list">
         <a class="tool" href="/stats">
-          <span class="tool-name">시즌별 스탯 <span class="span">77 시즌</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">📊</span>시즌별 스탯 <span class="span">77 시즌</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>시즌을 골라 선수들의 경기당 기록과 고급 스탯(TS%, PER, WS, BPM)을 검색·정렬합니다.</p>
         </a>
         <a class="tool" href="/ndl">
-          <span class="tool-name">NDL Score <span class="span">77 시즌</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🏀</span>NDL Score <span class="span">77 시즌</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>5개 축으로 분해되는 자체 평가 지표. 선수를 클릭하면 어느 축에서 점수가 왔는지 보입니다.</p>
         </a>
         <a class="tool" href="/player">
-          <span class="tool-name">선수 커리어 <span class="span">4,913 명</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">📈</span>선수 커리어 <span class="span">4,913 명</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>선수를 검색해 득점·리바운드·어시스트 등 스탯별 커리어 추이를 그래프로 봅니다.</p>
         </a>
         <a class="tool" href="/scatter">
-          <span class="tool-name">선수 포지셔닝 <span class="span">77 시즌</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🎯</span>선수 포지셔닝 <span class="span">77 시즌</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>두 스탯을 축으로 놓고 선수들이 서로 어디에 있는지 산점도로 비교합니다.</p>
         </a>
         <a class="tool" href="/game">
-          <span class="tool-name">시즌 시뮬레이션 <span class="span">1996–97 ~</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🎮</span>시즌 시뮬레이션 <span class="span">1996–97 ~</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>실제 기록으로 만든 능력치로 가상 경기를 돌립니다. 팀을 직접 드래프트할 수도 있습니다.</p>
         </a>
         <a class="tool" href="/projection">
-          <span class="tool-name">다음 시즌 예측 <span class="span">2026–27</span></span>
-          <span class="arrow">→</span>
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🔮</span>다음 시즌 예측 <span class="span">2026–27</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
           <p>나이에 따른 성장·노화 추세로 다음 시즌 점수를 예측합니다. 아직 일어나지 않은 일이라, 맞고 틀림은 시즌이 끝나면 드러납니다.</p>
+        </a>
+        <a class="tool" href="/model">
+          <span class="tool-name"><span class="tf tool-icon" aria-hidden="true">🏆</span>예측 모델 <span class="span">2026–27</span></span>
+          <span class="arrow tf" aria-hidden="true">➡️</span>
+          <p>선수 예측을 로스터 단위로 모아 다음 시즌 팀 순위를 예측합니다. 지난 11개 시즌으로 얼마나 맞았는지, 무엇을 넣어보고 뺐는지도 함께 적었습니다.</p>
         </a>
       </div>
     </section>

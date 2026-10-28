@@ -1,13 +1,16 @@
-﻿<title>선수 포지셔닝 — NBA DATA LAB</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+﻿<meta charset="utf-8">
+<title>선수 포지셔닝 — NBA DATA LAB</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 __BASE_CSS__
 
   /* ── 축 선택 ──────────────────────────────────────────── */
   .controls { margin: 22px 0 6px; }
   .controls label {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase;
+    font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--ink-3); margin-right: 6px;
   }
   .controls input { min-width: 150px; flex: 0 1 190px; }
@@ -22,13 +25,14 @@ __BASE_CSS__
   .legend { display: flex; gap: 4px; margin: 10px 0 14px; flex-wrap: wrap; }
   .legend-item {
     display: flex; align-items: center; gap: 6px;
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.78rem; letter-spacing: 0.05em; color: var(--ink-2);
+
+    font-size: 0.78rem; letter-spacing: 0.04em; color: var(--ink-2);
     cursor: pointer; user-select: none; background: none;
     border: 1px solid transparent; padding: 4px 9px; border-radius: 2px;
   }
   .legend-item:hover { border-color: var(--rule); }
-  .legend-item.off { opacity: 0.35; }
+  .legend-item.off { color: var(--ink-3); text-decoration: line-through; }
+  .legend-item.off .legend-dot { background: var(--dim) !important; }
   .legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
   /* ── 산점도 ───────────────────────────────────────────── */
@@ -39,22 +43,22 @@ __BASE_CSS__
     padding: 10px 0;
   }
   svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
-  .axis-tick text { fill: var(--ink-3); font-size: 11px; font-family: Oswald, system-ui, sans-serif; }
-  .axis-label { fill: var(--ink-2); font-size: 12px; font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.06em; }
+  .axis-tick text { fill: var(--ink-3); font-size: 11px; }
+  .axis-label { fill: var(--ink-2); font-size: 12px; letter-spacing: 0.04em; }
   .gridline { stroke: var(--rule); stroke-width: 1; }
   .baseline { stroke: var(--ink-3); stroke-width: 1; }
   circle.hit { fill: transparent; cursor: pointer; }
   circle.dot {
-    stroke: var(--paper); stroke-width: 1.5; fill-opacity: 0.8; pointer-events: none;
-    transition: r 0.1s ease, fill-opacity 0.1s ease;
+    stroke: var(--paper); stroke-width: 1.5; pointer-events: none;
+    transition: r 0.1s ease;
   }
   circle.dot.pos-G { fill: var(--cat-1); }
   circle.dot.pos-F { fill: var(--cat-2); }
   circle.dot.pos-C { fill: var(--cat-3); }
-  g.point:hover circle.dot { r: 7; fill-opacity: 1; }
-  g.point.hovered circle.dot { r: 7; fill-opacity: 1; stroke: var(--ink); }
-  g.point.matched circle.dot { r: 7; fill-opacity: 1; }
-  g.point.dimmed circle.dot { fill-opacity: 0.1; }
+  g.point:hover circle.dot { r: 7; }
+  g.point.hovered circle.dot { r: 7; stroke: var(--ink); }
+  g.point.matched circle.dot { r: 7; }
+  g.point.dimmed circle.dot { fill: var(--dim); }
   g.point.hidden-group { display: none; }
 
   .tooltip {
@@ -66,8 +70,7 @@ __BASE_CSS__
   .tooltip.show { opacity: 1; }
   .tooltip .tt-name { font-weight: 600; color: var(--ink); margin-bottom: 1px; }
   .tooltip .tt-sub {
-    font-family: Oswald, system-ui, sans-serif;
-    color: var(--ink-3); font-size: 0.72rem; letter-spacing: 0.05em; margin-bottom: 5px;
+    color: var(--ink-3); font-size: 0.72rem; letter-spacing: 0.04em; margin-bottom: 5px;
   }
   .tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; }
   .tooltip .tt-row .v { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -84,10 +87,13 @@ __BASE_CSS__
     width: 104px; height: 104px; object-fit: cover; border-radius: 50%;
     border: 1px solid var(--rule); background: var(--surface-sunk);
   }
+  .detail-card .avatar-fallback {
+    width: 104px; height: 104px; border-radius: 50%; border: 1px solid var(--rule);
+    background: var(--surface-sunk); display: grid; place-items: center; font-size: 52px;
+  }
   .detail-card .d-name { font-weight: 600; font-size: 1.05rem; margin-top: 12px; }
   .detail-card .d-sub {
-    font-family: Oswald, system-ui, sans-serif;
-    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.07em; margin-top: 2px;
+    color: var(--ink-3); font-size: 0.76rem; letter-spacing: 0.04em; margin-top: 2px;
   }
   .detail-stats {
     width: 100%; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr;
@@ -95,11 +101,9 @@ __BASE_CSS__
   }
   .detail-stats .stat { background: var(--paper); padding: 8px 6px; }
   .detail-stats .stat .k {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.64rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em;
+    font-size: 0.64rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em;
   }
   .detail-stats .stat .v {
-    font-family: Oswald, system-ui, sans-serif;
     font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 1px;
   }
   .close-btn {
@@ -118,12 +122,13 @@ __BASE_CSS__
       <h1>선수 포지셔닝</h1>
       <p>두 스탯을 축으로 놓고 선수들이 서로 어디에 있는지 비교합니다. 점을 클릭하면 선수 정보가 우측에 뜹니다. 표본이 안정적인 15경기 이상 출전 선수만 표시합니다.</p>
       <div class="nav-links">
-        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__HOME_URL__"><span class="tf">🏠</span> 홈</a>
         <a class="nav-link" href="__STATS_URL__">스탯 정리 페이지</a>
         <a class="nav-link" href="__NDL_URL__">NDL Score 평가 페이지</a>
         <a class="nav-link" href="__PLAYER_URL__">선수 커리어</a>
         <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
         <a class="nav-link" href="__PROJ_URL__">다음 시즌 예측</a>
+        <a class="nav-link" href="__MODEL_URL__">예측 모델</a>
       </div>
     </header>
 
@@ -136,7 +141,7 @@ __BASE_CSS__
         <label for="x-axis">X축</label>
         <select id="x-axis"></select>
       </div>
-      <button class="swap-btn" id="swap-axes" title="X/Y 축 바꾸기">⇄</button>
+      <button class="swap-btn" id="swap-axes" title="X/Y 축 바꾸기"><span class="tf">🔄</span></button>
       <div class="axis-group">
         <label for="y-axis">Y축</label>
         <select id="y-axis"></select>
@@ -361,16 +366,24 @@ __BASE_CSS__
     const p = players[i];
     const img = images[p.BbrefId];
     detail.classList.remove('empty');
-    const closeBtn = document.createElement('button'); closeBtn.className = 'close-btn'; closeBtn.textContent = '✕';
+    const closeBtn = document.createElement('button'); closeBtn.className = 'close-btn tf'; closeBtn.textContent = '✖️'; closeBtn.setAttribute('aria-label', '닫기');
     closeBtn.addEventListener('click', () => {
       detail.classList.add('empty');
       detail.textContent = '';
       detail.append('점을 클릭하면 선수 정보가 여기에 표시됩니다.');
       if (g) g.classList.remove('hovered');
     });
-    const imgEl = document.createElement('img');
-    imgEl.src = img || FALLBACK_AVATAR;
-    imgEl.alt = p.Player;
+    let imgEl;
+    if (img) {
+      imgEl = document.createElement('img');
+      imgEl.src = img;
+      imgEl.alt = p.Player;
+    } else {
+      imgEl = document.createElement('div');
+      imgEl.className = 'avatar-fallback tf';
+      imgEl.textContent = '🏀';
+      imgEl.setAttribute('aria-hidden', 'true');
+    }
     const nameEl = document.createElement('div'); nameEl.className = 'd-name'; nameEl.textContent = p.Player;
     const subEl = document.createElement('div'); subEl.className = 'd-sub'; subEl.textContent = `${p.Team} · ${p.Pos}`;
     const statsGrid = document.createElement('div'); statsGrid.className = 'detail-stats';
@@ -390,9 +403,6 @@ __BASE_CSS__
     detail.replaceChildren(closeBtn, imgEl, nameEl, subEl, statsGrid);
   }
 
-  const FALLBACK_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#c3c2b7"/><circle cx="50" cy="38" r="18" fill="#898781"/><ellipse cx="50" cy="88" rx="30" ry="22" fill="#898781"/></svg>'
-  );
 
   xSel.addEventListener('change', () => { xKey = xSel.value; render(); });
   ySel.addEventListener('change', () => { yKey = ySel.value; render(); });

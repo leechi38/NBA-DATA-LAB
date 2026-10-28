@@ -1,5 +1,9 @@
-﻿<title>NBA DATA LAB — 선수 커리어</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+﻿<meta charset="utf-8">
+<title>NBA DATA LAB — 선수 커리어</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-std-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css">
 <style>
 __BASE_CSS__
 
@@ -24,7 +28,6 @@ __BASE_CSS__
   .search-item:last-child { border-bottom: none; }
   .search-item:hover, .search-item.active { background: var(--accent-soft); color: var(--accent); }
   .search-item .years {
-    font-family: Oswald, system-ui, sans-serif;
     color: var(--ink-3); font-size: 0.78rem; white-space: nowrap;
   }
 
@@ -32,19 +35,16 @@ __BASE_CSS__
   .player-card { margin-top: 26px; border-top: 3px solid var(--rule-strong); padding-top: 14px; display: none; }
   .player-card.is-visible { display: block; }
   .player-card h2 {
-    font-family: Oswald, system-ui, sans-serif;
     margin: 0 0 3px; font-size: 1.7rem; font-weight: 600; letter-spacing: 0.01em;
   }
   .player-card .meta {
-    font-family: Oswald, system-ui, sans-serif;
-    color: var(--ink-3); font-size: 0.8rem; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--ink-3); font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
   }
 
   /* ── 스탯 선택 칩 ─────────────────────────────────────── */
   .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 4px; }
   .chip {
-    font-family: Oswald, system-ui, sans-serif;
-    font-size: 0.78rem; letter-spacing: 0.05em; padding: 5px 11px; cursor: pointer;
+    font-size: 0.78rem; letter-spacing: 0.04em; padding: 5px 11px; cursor: pointer;
     background: transparent; color: var(--ink-2);
     border: 1px solid var(--rule); border-radius: 2px; user-select: none;
   }
@@ -60,12 +60,10 @@ __BASE_CSS__
   }
   .chart-tile { background: var(--paper); padding: 13px 14px 8px; }
   .chart-tile h3 {
-    font-family: Oswald, system-ui, sans-serif;
-    margin: 0 0 1px; font-size: 0.74rem; letter-spacing: 0.09em; text-transform: uppercase;
+    margin: 0 0 1px; font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--ink-3); font-weight: 500;
   }
   .chart-tile .latest {
-    font-family: Oswald, system-ui, sans-serif;
     font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15;
   }
   .chart-tile .career-note {
@@ -88,7 +86,7 @@ __BASE_CSS__
   table { white-space: nowrap; font-size: 0.84rem; }
   thead th:first-child, thead th:nth-child(2) { text-align: left; }
   tbody td:first-child, tbody td:nth-child(2) { text-align: left; font-variant-numeric: normal; }
-  tbody td:first-child { font-family: Oswald, system-ui, sans-serif; letter-spacing: 0.02em; }
+  tbody td:first-child { letter-spacing: 0.02em; }
 
   @media (max-width: 480px) { .chart-grid { grid-template-columns: 1fr; } }
 </style>
@@ -100,12 +98,13 @@ __BASE_CSS__
       <h1>선수 커리어</h1>
       <p>선수를 검색하면 정규시즌 커리어 전체의 스탯 추이를 볼 수 있습니다.</p>
       <div class="nav-links">
-        <a class="nav-link" href="__HOME_URL__">← 홈</a>
+        <a class="nav-link" href="__HOME_URL__"><span class="tf">🏠</span> 홈</a>
         <a class="nav-link" href="__STATS_URL__">시즌 스탯</a>
         <a class="nav-link" href="__NDL_URL__">NDL Score</a>
         <a class="nav-link" href="__SCATTER_URL__">선수 포지셔닝</a>
         <a class="nav-link" href="__GAME_URL__">시즌 시뮬레이션</a>
         <a class="nav-link" href="__PROJ_URL__">다음 시즌 예측</a>
+        <a class="nav-link" href="__MODEL_URL__">예측 모델</a>
       </div>
     </header>
 

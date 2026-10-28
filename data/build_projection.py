@@ -62,14 +62,26 @@ TRAIN_END = 2015      # 계수 검증용 학습 구간 끝
 MIN_AGE_PAIRS = 30    # 나이 델타를 신뢰할 최소 표본
 KNOTS = [50, 60, 70, 80]   # 기량 구간의 마디
 GROWTH_FROM = 55      # 이 점수 위부터 나이 성장분을 기량에 비례해 더 준다 (아래 features 참고)
+FULL_GAMES = 0.85     # 시즌 경기 수의 이 비율 이상 뛰면 결장 없음으로 본다. 학습 구간 안에서만
+                      # 골랐다(~2005 적합 → 2006~2014 검증, 60~100% 중 85%가 최소 오차)
+REF_MINUTES = 2000    # NDL이 출전시간 감점을 다 푸는 총 출전시간 (fetch_all_seasons.py와 같은 값)
 
 
 def load():
+    """선수-시즌 기록. 'adj'는 결장 경기만 되살린 점수다.
+
+    NDL은 50 + (경기력 × 출전 비중)이라 부상으로 빠진 시즌은 점수가 50 쪽으로 눌린다.
+    아데토쿤보 2025-26은 36경기(비중 0.52)라 62.1인데, 같은 경기력으로 결장 없이 뛰었다면
+    약 73이다. 다음 시즌을 맞히는 데는 이 쪽이 낫다. 다만 경기당 출전시간은 건드리지 않는다.
+    처음에 총 출전시간 전체를 되살렸더니 원래 적게 뛰는 식스맨까지 부풀려 오히려 나빠졌다.
+    """
     rows, meta = {}, {}
     for f in sorted((BASE / "seasons").glob("players_*.json"),
                     key=lambda p: int(p.stem.split("_")[1])):
         d = json.loads(f.read_text(encoding="utf-8"))
         year = int(d["season"].split("-")[0]) + 1
+        season_games = max(int(p.get("G") or 0) for p in d["players"])   # 단축 시즌(50·66경기) 대응
+        full = FULL_GAMES * season_games
         for p in d["players"]:
             pid, age, ndl = p.get("BbrefId"), p.get("Age"), p.get("NDL_Score")
             g, mp = p.get("G"), p.get("MP")
@@ -77,7 +89,13 @@ def load():
                 continue
             if g * mp < MIN_MP:
                 continue
-            rows[(pid, year)] = {"age": int(age), "ndl": ndl, "mp": g * mp}
+            w = max(p.get("NDL_Weight") or 0.0, 0.05)
+            w_full = min(1.0, mp * max(g, full) / REF_MINUTES)   # 결장 없이 뛰었다면의 비중
+            rows[(pid, year)] = {
+                "age": int(age), "ndl": ndl, "mp": g * mp, "games": int(g),
+                "share": min(1.0, g / full),
+                "adj": min(100.0, max(0.0, 50 + (ndl - 50) * w_full / w)),
+            }
             meta[pid] = {"name": p["Player"], "team": p.get("Team"),
                          "pos": p.get("Pos"), "season": d["season"]}
     return rows, meta
@@ -118,8 +136,9 @@ def features(rows, curve, pid, year):
     past = [(r, w) for r, w in past if r]
     if not past:
         return None
-    ws = sum(w for _, w in past)
-    wavg = sum(r["ndl"] * w for r, w in past) / ws
+    # 결장 보정 점수의 가중평균. 적게 뛴 시즌은 덜 믿도록 경기 비율을 가중치에 곱한다.
+    ws = [w * r["share"] for r, w in past]
+    wavg = sum(r["adj"] * w for (r, _), w in zip(past, ws)) / sum(ws)
     cur = past[0][0]
     raw_d = curve.get(cur["age"], 0.0)
     old = cur["age"] >= AGE_SPLIT
@@ -132,7 +151,7 @@ def features(rows, curve, pid, year):
     # [절편, wavg, 마디별 추가 기울기…, 직전 시즌 편차, 유망주 성장, 나이델타(젊음), 나이델타(30세+)]
     # 나이델타 두 항은 끝에 둔다. 페이지가 계수 배열의 끝 두 개를 나이델타로 읽는다.
     x = ([1.0, wavg] + [max(0.0, wavg - k) for k in KNOTS]
-         + [cur["ndl"] - wavg, young_d * talent]
+         + [cur["adj"] - wavg, young_d * talent]
          + [young_d, raw_d if old else 0.0])
     return {
         "x": x, "wavg": wavg, "delta": raw_d, "cur": cur,
@@ -223,7 +242,9 @@ def holdout_report(rows):
 #   1) 다음 시즌 80% 범위 — 나이·기량·경력이 비슷한 그룹에서 실제가 예측을 벗어난 폭
 #   2) 5년 안에 70·80·90점 도달 확률 — 비슷한 과거 선수(비교 선수)가 실제로 오른 폭
 
-RANGE_SINCE = 1990    # 범위는 현대 시즌 잔차로 잡는다. 최근 스타일수록 더 크게 출렁였다
+RANGE_YEARS = 15      # 범위는 예측 시점 직전 15시즌의 잔차로 잡는다. 2016년 이후 기량 70+ 선수가
+                      # 다음 해 결장하는 비율이 26~28%에서 59%로 뛰어(로드 매니지먼트), 오래된
+                      # 시즌까지 섞으면 스타의 아래쪽 폭을 못 따라간다
 RANGE_MIN_N = 100     # 그룹 표본이 이보다 적으면 이웃 그룹과 합친다
 COMP_K = 30           # 비교 선수 수
 COMP_WINDOW = (25, 5) # 비교 풀: 예측 시점 25~5년 전 시즌 (5년 뒤 결과까지 관측된 시즌만)
@@ -263,7 +284,7 @@ def holdout_range(rows):
     """~2015년으로 만든 범위가 이후 시즌의 실제를 몇 %나 담는지."""
     curve, _, _ = aging_curve(rows, upto=TRAIN_END)
     coef, _ = fit(rows, curve, TRAIN_END)
-    bands = range_bands(rows, curve, coef, RANGE_SINCE, TRAIN_END)
+    bands = range_bands(rows, curve, coef, TRAIN_END - RANGE_YEARS + 1, TRAIN_END)
     hit = defaultdict(list)
     for (pid, yr), nxt in rows.items():
         if yr - 1 <= TRAIN_END + 1:
@@ -283,8 +304,10 @@ def holdout_range(rows):
     return [{"group": k, "rate": round(float(np.mean(v)), 3), "n": len(v)} for k, v in hit.items()]
 
 
-def career_profiles(rows):
-    """선수-시즌마다 비교에 쓸 프로필과, 이후 5시즌 최고점(리그를 떠났으면 0)."""
+def career_profiles(rows, level="adj"):
+    """선수-시즌마다 비교에 쓸 프로필과, 이후 5시즌 최고점(리그를 떠났으면 0).
+    비교 기준 점수(level)는 결장 보정 점수다. 부상 시즌의 눌린 점수로 비교하면
+    아데토쿤보(36경기, 62.1)가 '32세 62점 선수'들과 묶여 80점 도달 0%가 나왔다."""
     by_player = defaultdict(list)
     for pid, y in rows:
         by_player[pid].append(y)
@@ -296,8 +319,9 @@ def career_profiles(rows):
             past = [(r, w) for r, w in past if r]
             later = [rows[(pid, y + k)]["ndl"] for k in range(1, HORIZON + 1) if (pid, y + k) in rows]
             prof[(pid, y)] = {
-                "age": rows[(pid, y)]["age"], "ndl": rows[(pid, y)]["ndl"],
-                "wavg": sum(r["ndl"] * w for r, w in past) / sum(w for _, w in past),
+                "age": rows[(pid, y)]["age"], "ndl": rows[(pid, y)][level],
+                "wavg": (sum(r[level] * w * r["share"] for r, w in past)
+                         / sum(w * r["share"] for r, w in past)),
                 "exp": min(i + 1, 3), "peak": max(later) if later else 0.0,
             }
     return prof
@@ -398,7 +422,7 @@ def main():
         print(f"  {t['threshold']}점  평균 예측 {t['pred']:.1%} / 실제 {t['obs']:.1%}  Brier {t['brier']:.4f}  | "
               + "  ".join(f"{b['lo']:.0%}~{b['hi']:.0%}: {b['pred']:.0%}→{b['obs']:.0%}(n{b['n']})" for b in t["bins"]))
 
-    bands = range_bands(rows, curve, coef, RANGE_SINCE, last_year)
+    bands = range_bands(rows, curve, coef, last_year - RANGE_YEARS, last_year - 1)
     pool = comp_pool(prof, last_year - COMP_WINDOW[0], last_year - COMP_WINDOW[1])
     print()
 
@@ -424,6 +448,7 @@ def main():
             "id": pid, "player": m["name"], "team": m["team"], "pos": m["pos"],
             "age": cur["age"], "nextAge": cur["age"] + 1,
             "current": round(cur["ndl"], 1),
+            "games": cur["games"], "gamesShare": round(cur["share"], 2), "adjusted": round(cur["adj"], 1),
             "projected": round(proj, 1),
             "change": round(proj - cur["ndl"], 1),
             "weightedAvg": round(f["wavg"], 1),

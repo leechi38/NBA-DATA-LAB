@@ -216,6 +216,147 @@ def holdout_report(rows):
     }
 
 
+# ── 범위와 상한 ──────────────────────────────────────────────────────────
+# 예측값 하나는 비슷한 선수들의 가운데값이라, 크니펠 같은 신인을 평균 경로(66 → 69)로만
+# 보여준다. 실제로는 비슷한 출발을 한 선수 셋 중 하나가 80점을 넘었다. 그 가능성을 숫자로
+# 보이려고 두 가지를 덧붙인다.
+#   1) 다음 시즌 80% 범위 — 나이·기량·경력이 비슷한 그룹에서 실제가 예측을 벗어난 폭
+#   2) 5년 안에 70·80·90점 도달 확률 — 비슷한 과거 선수(비교 선수)가 실제로 오른 폭
+
+RANGE_SINCE = 1990    # 범위는 현대 시즌 잔차로 잡는다. 최근 스타일수록 더 크게 출렁였다
+RANGE_MIN_N = 100     # 그룹 표본이 이보다 적으면 이웃 그룹과 합친다
+COMP_K = 30           # 비교 선수 수
+COMP_WINDOW = (25, 5) # 비교 풀: 예측 시점 25~5년 전 시즌 (5년 뒤 결과까지 관측된 시즌만)
+REACH = (70, 80, 90)
+HORIZON = 5
+
+
+def range_key(f):
+    a, w = f["cur"]["age"], f["wavg"]
+    return (0 if a <= 22 else 1 if a <= 25 else 2 if a <= 29 else 3,
+            0 if w < 50 else 1 if w < 60 else 2 if w < 70 else 3,
+            1 if f["seasons"] == 1 else 2)
+
+
+def range_bands(rows, curve, coef, since, upto):
+    """그룹별로 (실제 − 예측)의 10·90 백분위. 신인 여부 → 이웃 나이대 순으로 합친다."""
+    g = defaultdict(list)
+    for (pid, yr), nxt in rows.items():
+        if not since <= yr - 1 <= upto:
+            continue
+        f = features(rows, curve, pid, yr - 1)
+        if f is None or (pid, yr - 1) not in rows:
+            continue
+        g[range_key(f)].append(nxt["ndl"] - float(np.dot(coef, f["x"])))
+    bands = {}
+    for k in [(a, t, s) for a in range(4) for t in range(4) for s in (1, 2)]:
+        src = g.get(k, [])
+        if len(src) < RANGE_MIN_N:
+            src = [r for kk, v in g.items() if kk[:2] == k[:2] for r in v]
+        if len(src) < RANGE_MIN_N:
+            src = [r for kk, v in g.items() if kk[1] == k[1] and abs(kk[0] - k[0]) <= 1 for r in v]
+        bands[k] = (float(np.percentile(src, 10)), float(np.percentile(src, 90)))
+    return bands
+
+
+def holdout_range(rows):
+    """~2015년으로 만든 범위가 이후 시즌의 실제를 몇 %나 담는지."""
+    curve, _, _ = aging_curve(rows, upto=TRAIN_END)
+    coef, _ = fit(rows, curve, TRAIN_END)
+    bands = range_bands(rows, curve, coef, RANGE_SINCE, TRAIN_END)
+    hit = defaultdict(list)
+    for (pid, yr), nxt in rows.items():
+        if yr - 1 <= TRAIN_END + 1:
+            continue
+        f = features(rows, curve, pid, yr - 1)
+        if f is None or (pid, yr - 1) not in rows:
+            continue
+        p = float(np.dot(coef, f["x"]))
+        lo, hi = bands[range_key(f)]
+        a, w, inside = f["cur"]["age"], f["wavg"], p + lo <= nxt["ndl"] <= p + hi
+        for grp, ok in [("전체", True), ("22세 이하", a <= 22), ("23~29세", 23 <= a <= 29),
+                        ("30세 이상", a >= 30), ("기량 70 이상", w >= 70), ("신인", f["seasons"] == 1)]:
+            if ok:
+                hit[grp].append(inside)
+        hit["위로 벗어남"].append(nxt["ndl"] > p + hi)
+        hit["아래로 벗어남"].append(nxt["ndl"] < p + lo)
+    return [{"group": k, "rate": round(float(np.mean(v)), 3), "n": len(v)} for k, v in hit.items()]
+
+
+def career_profiles(rows):
+    """선수-시즌마다 비교에 쓸 프로필과, 이후 5시즌 최고점(리그를 떠났으면 0)."""
+    by_player = defaultdict(list)
+    for pid, y in rows:
+        by_player[pid].append(y)
+    prof = {}
+    for pid, ys in by_player.items():
+        ys.sort()
+        for i, y in enumerate(ys):
+            past = [(rows.get((pid, y - k)), WEIGHTS[k]) for k in range(3)]
+            past = [(r, w) for r, w in past if r]
+            later = [rows[(pid, y + k)]["ndl"] for k in range(1, HORIZON + 1) if (pid, y + k) in rows]
+            prof[(pid, y)] = {
+                "age": rows[(pid, y)]["age"], "ndl": rows[(pid, y)]["ndl"],
+                "wavg": sum(r["ndl"] * w for r, w in past) / sum(w for _, w in past),
+                "exp": min(i + 1, 3), "peak": max(later) if later else 0.0,
+            }
+    return prof
+
+
+def comp_pool(prof, lo, hi):
+    pool = defaultdict(list)
+    for key, p in prof.items():
+        if lo <= key[1] <= hi:
+            pool[p["age"]].append((key, p))
+    return pool
+
+
+def find_comps(pool, p):
+    """같은 나이(표본이 얇으면 ±1세)에서 올해 점수·3시즌 평균·경력이 가장 가까운 선수들."""
+    cand = pool.get(p["age"], [])
+    if len(cand) < COMP_K * 3:
+        cand = [c for a in (p["age"] - 1, p["age"], p["age"] + 1) for c in pool.get(a, [])]
+    d = [np.hypot(c["ndl"] - p["ndl"], c["wavg"] - p["wavg"]) + 4 * abs(c["exp"] - p["exp"])
+         for _, c in cand]
+    return [cand[i] for i in np.argsort(d)[:COMP_K]]
+
+
+def reach_probs(p, comps):
+    """비교 선수의 최고점을 그대로 쓰지 않고, 그 시점에서 오른 폭을 옮겨 붙인다.
+    최상위 선수는 자기보다 위에 비교 대상이 거의 없어, 최고점을 그대로 쓰면 확률이
+    체계적으로 낮아진다(80점 도달 30~50% 예측 → 실제 57%). 폭을 옮기면 34%로 맞는다."""
+    return [float(np.mean([c["peak"] > 0 and p["ndl"] + c["peak"] - c["ndl"] >= t
+                           for _, c in comps])) for t in REACH]
+
+
+def holdout_reach(rows, prof):
+    """각 시즌을 그 시점에 결과가 나와 있던 비교 풀로만 예측해, 확률이 맞는지 본다."""
+    last = max(y for _, y in rows)
+    P, O, young = [], [], []
+    for ty in range(TRAIN_END - 4, last - HORIZON + 1):
+        pool = comp_pool(prof, ty - COMP_WINDOW[0], ty - COMP_WINDOW[1])
+        for key, p in prof.items():
+            if key[1] != ty:
+                continue
+            P.append(reach_probs(p, find_comps(pool, p)))
+            O.append([p["peak"] >= t for t in REACH])
+            young.append(p["age"] <= 23)
+    P, O, young = np.array(P), np.array(O, dtype=float), np.array(young)
+    out = {"seasons": [TRAIN_END - 4, last - HORIZON], "n": len(P), "byThreshold": []}
+    for j, t in enumerate(REACH):
+        bins = []
+        for lo, hi in [(0, .05), (.05, .15), (.15, .3), (.3, .5), (.5, .8), (.8, 1.01)]:
+            m = (P[:, j] >= lo) & (P[:, j] < hi)
+            if m.sum() >= 10:
+                bins.append({"lo": lo, "hi": min(hi, 1), "n": int(m.sum()),
+                             "pred": round(float(P[m, j].mean()), 3), "obs": round(float(O[m, j].mean()), 3)})
+        out["byThreshold"].append({
+            "threshold": t, "pred": round(float(P[:, j].mean()), 4), "obs": round(float(O[:, j].mean()), 4),
+            "youngPred": round(float(P[young, j].mean()), 4), "youngObs": round(float(O[young, j].mean()), 4),
+            "brier": round(float(np.mean((P[:, j] - O[:, j]) ** 2)), 4), "bins": bins})
+    return out
+
+
 def main():
     rows, meta = load()
 
@@ -246,6 +387,21 @@ def main():
     from_label = next(meta[pid]["season"] for (pid, y) in rows if y == last_year)
     to_label = f"{last_year}-{str(last_year + 1)[-2:]}"
 
+    range_check = holdout_range(rows)
+    print("다음 시즌 80% 범위 — 시험 구간에서 실제가 범위 안에 든 비율 (목표 80%)")
+    print("  " + "  ".join(f"{r['group']} {r['rate']:.1%}(n{r['n']})" for r in range_check))
+    prof = career_profiles(rows)
+    reach_check = holdout_reach(rows, prof)
+    print(f"\n{HORIZON}년 내 도달 확률 — {reach_check['seasons'][0] - 1}~{reach_check['seasons'][1]} 시즌을 "
+          "그 시점의 비교 풀로만 예측")
+    for t in reach_check["byThreshold"]:
+        print(f"  {t['threshold']}점  평균 예측 {t['pred']:.1%} / 실제 {t['obs']:.1%}  Brier {t['brier']:.4f}  | "
+              + "  ".join(f"{b['lo']:.0%}~{b['hi']:.0%}: {b['pred']:.0%}→{b['obs']:.0%}(n{b['n']})" for b in t["bins"]))
+
+    bands = range_bands(rows, curve, coef, RANGE_SINCE, last_year)
+    pool = comp_pool(prof, last_year - COMP_WINDOW[0], last_year - COMP_WINDOW[1])
+    print()
+
     out = []
     for (pid, y) in rows:
         if y != last_year:
@@ -256,7 +412,15 @@ def main():
         cur = f["cur"]
         proj = float(np.dot(coef, f["x"]))
         m = meta[pid]
+        lo, hi = bands[range_key(f)]
+        p = prof[(pid, last_year)]
+        comps = find_comps(pool, p)
         out.append({
+            "low": round(max(0.0, proj + lo), 1), "high": round(min(100.0, proj + hi), 1),  # 척도는 0~100
+            "reach": [round(v, 2) for v in reach_probs(p, comps)],
+            "comps": [{"player": meta[k[0]]["name"], "season": f"{k[1] - 1}-{str(k[1])[-2:]}",
+                       "age": c["age"], "ndl": round(c["ndl"], 1), "peak": round(c["peak"], 1)}
+                      for k, c in comps[:3]],
             "id": pid, "player": m["name"], "team": m["team"], "pos": m["pos"],
             "age": cur["age"], "nextAge": cur["age"] + 1,
             "current": round(cur["ndl"], 1),
@@ -275,6 +439,10 @@ def main():
             "recencyCoef": b[RECENCY_IDX],
             "recencyWeights": [round(float(w), 3) for w in rw],
             "growthCoef": b[GROWTH_IDX], "growthFrom": GROWTH_FROM,
+            "rangeCheck": range_check, "reachCheck": reach_check,
+            "reach": {"thresholds": list(REACH), "horizon": HORIZON, "k": COMP_K,
+                      "pool": [f"{y - 1}-{str(y)[-2:]}" for y in
+                               (last_year - COMP_WINDOW[0], last_year - COMP_WINDOW[1])]},
             "tiers": [{"label": lab, "slope": round(float(s), 3),
                        "shrink": round((1 - float(s)) * 100, 1)}
                       for lab, s in zip(labels, sl)],

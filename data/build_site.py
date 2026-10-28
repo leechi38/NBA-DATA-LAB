@@ -85,6 +85,15 @@ def main():
                         (BASE / "projection.json").read_text(encoding="utf-8"))
     sizes["projection.html"] = write("projection.html", apply_urls(html))
 
+    # --- 예측 모델 (팀 순위) ---
+    html = (BASE / "model_template.html").read_text(encoding="utf-8")
+    html = html.replace("__TEAM_DATA__", (BASE / "team_projection.json").read_text(encoding="utf-8"))
+    html = html.replace("__EXP_DATA__", (BASE / "exp_team_features.json").read_text(encoding="utf-8"))
+    sizes["model.html"] = write("model.html", apply_urls(html))
+
+    # --- 파비콘: Tossface 🏀 (github.com/toss/tossface, dist/svg/u1F3C0.svg) ---
+    shutil.copy2(BASE / "favicon.svg", SITE / "favicon.svg")
+
     # --- Vercel 설정: 확장자 없는 주소 + 정적 자산 캐싱 ---
     (SITE / "vercel.json").write_text(json.dumps({
         "cleanUrls": True,

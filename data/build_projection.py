@@ -1,6 +1,7 @@
 """다음 시즌 NDL Score 예측값을 만들어 projection.json으로 내보낸다.
 
     예측 = b0 + (기량 구간별 기울기)×(최근 3시즌 5:4:3 가중평균)
+              + b×(직전 시즌 − 가중평균)
               + b×(나이 델타, 30세 미만) + b×(나이 델타, 30세 이상)
 
 평균회귀를 하나의 기울기로 두면 모든 선수에게 같은 비율을 적용하게 된다. 실제로는
@@ -27,8 +28,15 @@ mp/(mp+2000) 꼴로 손수 정했는데, 점수대별 편향을 재보니 80점�
 믿을지를 손으로 정하는 대신 계수가 정하게 했다. 결과는 1.14 대 1.65로,
 젊은 구간을 실제로 덜 신뢰한다.
 
+5:4:3도 손으로 정한 상수였다. '직전 시즌 − 가중평균' 항을 하나 더해 시즌별 비중을
+데이터가 고르게 했더니 계수가 0.31로, 직전 시즌 비중이 42%에서 약 60%로 올라갔다.
+MAE 4.13 → 4.08(부트스트랩 95% 신뢰구간 [+0.015, +0.082])이고, 나이대(≤23·24–29·30+)와
+예측 점수대(<50·50–70·70+)로 나눠도 모든 구간에서 줄었다. 평균이 엇갈린 효과를
+가린 것이 아니다. 출전시간·경기수·선발 비율·경력 연차도 같은 방식으로 시험했으나
+0.01 안팎이라 넣지 않았다.
+
 홀드아웃(2016-17년~, 2,576개) 성능
-    MAE  4.61 → 4.13     상관 0.730 → 0.761     (기준: 작년 성적 그대로)
+    MAE  4.61 → 4.08     상관 0.730 → 0.764     (기준: 작년 성적 그대로)
 """
 import json
 from collections import defaultdict
@@ -107,8 +115,10 @@ def features(rows, curve, pid, year):
     cur = past[0][0]
     raw_d = curve.get(cur["age"], 0.0)
     old = cur["age"] >= AGE_SPLIT
-    # [절편, wavg, 마디별 추가 기울기…, 나이델타(젊음), 나이델타(30세+)]
+    # [절편, wavg, 마디별 추가 기울기…, 직전 시즌 편차, 나이델타(젊음), 나이델타(30세+)]
+    # 나이델타 두 항은 끝에 둔다. 페이지가 계수 배열의 끝 두 개를 나이델타로 읽는다.
     x = ([1.0, wavg] + [max(0.0, wavg - k) for k in KNOTS]
+         + [cur["ndl"] - wavg]
          + [0.0 if old else raw_d, raw_d if old else 0.0])
     return {
         "x": x, "wavg": wavg, "delta": raw_d, "cur": cur,
@@ -123,6 +133,18 @@ def slopes_of(coef):
         s += coef[2 + i]
         out.append(s)
     return out
+
+
+RECENCY_IDX = 2 + len(KNOTS)   # 계수 배열에서 직전 시즌 편차 항의 위치
+
+
+def recency_weights(coef, tier=2):
+    """세 시즌을 다 뛴 선수 기준, 예측에서 각 시즌이 실제로 차지하는 비중.
+    tier는 slopes_of의 구간 번호(2 = 60–70)."""
+    s, r = slopes_of(coef)[tier], coef[RECENCY_IDX]
+    w = np.array(WEIGHTS, dtype=float) / sum(WEIGHTS)
+    eff = s * w + r * (np.eye(len(w))[0] - w)   # s×wavg + r×(직전 − wavg)
+    return eff / eff.sum()
 
 
 def fit(rows, curve, upto):
@@ -198,7 +220,10 @@ def main():
     print("기량 구간별 평균회귀율")
     for lab, s in zip(labels, sl):
         print(f"  {lab:<10}{(1 - s) * 100:>6.1f}%  (기울기 {s:.3f})")
-    print(f"\n나이 델타 계수: 30세 미만 {b[-2]:.2f} / 30세 이상 {b[-1]:.2f}\n")
+    rw = recency_weights(coef)
+    print(f"\n직전 시즌 편차 계수 {b[RECENCY_IDX]:.3f} → 실효 시즌 비중(60점대 선수) "
+          + ":".join(f"{w:.0%}" for w in rw) + f"  (5:4:3은 {5/12:.0%}:{4/12:.0%}:{3/12:.0%})")
+    print(f"나이 델타 계수: 30세 미만 {b[-2]:.2f} / 30세 이상 {b[-1]:.2f}\n")
 
     last_year = max(y for _, y in rows)
     from_label = next(meta[pid]["season"] for (pid, y) in rows if y == last_year)
@@ -230,6 +255,8 @@ def main():
         "fromSeason": from_label, "toSeason": to_label,
         "model": {
             **report, "finalCoef": b, "ageSplit": AGE_SPLIT, "knots": KNOTS,
+            "recencyCoef": b[RECENCY_IDX],
+            "recencyWeights": [round(float(w), 3) for w in rw],
             "tiers": [{"label": lab, "slope": round(float(s), 3),
                        "shrink": round((1 - float(s)) * 100, 1)}
                       for lab, s in zip(labels, sl)],
